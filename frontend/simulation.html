@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block title %}Simulation Mode - AI Disaster Response{% endblock %}
+{% block page_title %}Simulation Mode{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+    <!-- Warning Banner -->
+    <div class="alert border-0 d-flex align-items-center mb-4 shadow-sm" style="background: linear-gradient(135deg, #fef3c7, #fde68a);" role="alert">
+        <i class="bi bi-tornado fs-3 text-warning me-3"></i>
+        <div>
+            <strong class="text-dark">🧪 Simulation Mode</strong><br>
+            <span class="text-secondary small">Adjust the sliders below to simulate disaster conditions. The map and risk levels update <strong>live</strong> as you change values.</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Simulation Controls -->
+        <div class="col-12 col-xl-4">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-sliders"></i> Scenario Controls</h5>
+                    <button class="btn btn-sm btn-danger" id="resetBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-flex justify-content-between">
+                        <span><i class="bi bi-cloud-rain text-primary me-2"></i>Rainfall Intensity</span>
+                        <span class="badge bg-primary" id="rainfallVal">50 mm</span>
+                    </label>
+                    <input type="range" class="form-range sim-slider" id="simRainfall" min="0" max="300" value="50">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-flex justify-content-between">
+                        <span><i class="bi bi-wind text-info me-2"></i>Wind Speed</span>
+                        <span class="badge bg-info" id="windVal">30 km/h</span>
+                    </label>
+                    <input type="range" class="form-range sim-slider" id="simWind" min="0" max="200" value="30">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-flex justify-content-between">
+                        <span><i class="bi bi-water text-danger me-2"></i>River / Water Level</span>
+                        <span class="badge bg-danger" id="riverVal">3 m</span>
+                    </label>
+                    <input type="range" class="form-range sim-slider" id="simRiver" min="0" max="15" value="3" step="0.5">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-flex justify-content-between">
+                        <span><i class="bi bi-thermometer-half text-warning me-2"></i>Temperature</span>
+                        <span class="badge bg-warning text-dark" id="tempVal">28 °C</span>
+                    </label>
+                    <input type="range" class="form-range sim-slider" id="simTemp" min="10" max="50" value="28">
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Live Result -->
+                <div id="simResult" class="text-center py-3">
+                    <div class="text-muted small">Move a slider to see the live risk update</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Live Map + Flood Spread -->
+        <div class="col-12 col-xl-8">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-map"></i> Live Risk Simulation Map</h5>
+                    <span class="badge bg-danger pulse-anim" id="simStatusBadge">Idle</span>
+                </div>
+                <div id="simMap" style="height: 420px; border-radius: 8px;"></div>
+            </div>
+
+            <!-- Scenario Presets -->
+            <div class="panel-card mt-4">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-lightning-charge"></i> Quick Scenarios</h5>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-danger w-100 py-2" onclick="loadScenario('flood')">
+                            <i class="bi bi-water fs-3 d-block mb-1"></i>
+                            <strong>Severe Flood</strong><br>
+                            <small class="text-muted">Rainfall 250mm, River 12m</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-warning w-100 py-2" onclick="loadScenario('cyclone')">
+                            <i class="bi bi-tornado fs-3 d-block mb-1"></i>
+                            <strong>Cyclone</strong><br>
+                            <small class="text-muted">Wind 180km/h, Rain 150mm</small>
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-success w-100 py-2" onclick="loadScenario('normal')">
+                            <i class="bi bi-sun fs-3 d-block mb-1"></i>
+                            <strong>Normal Conditions</strong><br>
+                            <small class="text-muted">All metrics safe</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sim-slider { accent-color: #3b82f6; }
+.sim-slider::-webkit-slider-thumb { cursor: pointer; }
+</style>
+
+<script>
+// Init map
+const simMap = L.map('simMap').setView([12.97, 77.6], 10);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO', subdomains: 'abcd'
+}).addTo(simMap);
+
+// Simulated zones
+const simZones = [
+    { name: "Zone G", lat: 12.9716, lng: 77.5946, base_risk: 30 },
+    { name: "Zone D", lat: 12.9352, lng: 77.6245, base_risk: 20 },
+    { name: "Zone B", lat: 12.9141, lng: 77.6308, base_risk: 10 },
+    { name: "Zone A", lat: 13.0827, lng: 80.2707, base_risk: 5 }
+];
+
+let simCircles = [];
+let simHeat = null;
+
+function getRiskColor(risk) {
+    if (risk > 70) return '#ef4444';
+    if (risk > 40) return '#f59e0b';
+    return '#10b981';
+}
+
+function updateSimMap(rainfall, wind, river) {
+    // Remove old layers
+    simCircles.forEach(c => c.remove());
+    simCircles = [];
+    if (simHeat) { simHeat.remove(); simHeat = null; }
+
+    const heatData = [];
+
+    simZones.forEach((z, idx) => {
+        // Simulate risk increase based on inputs
+        const multiplier = 1 + (rainfall / 300) * 1.5 + (wind / 200) * 0.8 + (river / 15) * 1.2;
+        const computedRisk = Math.min(100, Math.round(z.base_risk * multiplier));
+
+        const color = getRiskColor(computedRisk);
+        const radius = 8 + (computedRisk / 10);
+
+        const c = L.circleMarker([z.lat, z.lng], {
+            radius: radius,
+            fillColor: color,
+            color: color,
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.7
+        });
+        c.bindPopup(`<strong>${z.name}</strong><br>Simulated Risk: <b style="color:${color}">${computedRisk}%</b>`);
+        c.addTo(simMap);
+        simCircles.push(c);
+
+        heatData.push([z.lat, z.lng, computedRisk / 100]);
+    });
+
+    if (typeof L.heatLayer !== 'undefined') {
+        simHeat = L.heatLayer(heatData, {
+            radius: 60, blur: 40,
+            gradient: { 0.2: '#93c5fd', 0.5: '#fcd34d', 0.8: '#f97316', 1.0: '#ef4444' }
+        });
+        simHeat.addTo(simMap);
+    }
+}
+
+// Debounce helper
+let simTimer = null;
+async function runSimulation() {
+    clearTimeout(simTimer);
+    simTimer = setTimeout(async () => {
+        const rainfall = parseFloat(document.getElementById('simRainfall').value);
+        const wind = parseFloat(document.getElementById('simWind').value);
+        const river = parseFloat(document.getElementById('simRiver').value);
+        const temp = parseFloat(document.getElementById('simTemp').value);
+
+        document.getElementById('rainfallVal').textContent = rainfall + ' mm';
+        document.getElementById('windVal').textContent = wind + ' km/h';
+        document.getElementById('riverVal').textContent = river + ' m';
+        document.getElementById('tempVal').textContent = temp + ' °C';
+        document.getElementById('simStatusBadge').textContent = 'Simulating...';
+        document.getElementById('simStatusBadge').className = 'badge bg-warning pulse-anim';
+
+        updateSimMap(rainfall, wind, river);
+
+        // Call real AI predict API
+        try {
+            const res = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rainfall, wind_speed: wind, river_level: river, temperature: temp })
+            });
+            const data = await res.json();
+
+            const colorMap = { High: 'danger', Medium: 'warning', Low: 'success' };
+            const color = colorMap[data.risk_level] || 'secondary';
+
+            document.getElementById('simResult').innerHTML = `
+                <div class="alert alert-${color} mb-0 text-start">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Risk Level: ${data.risk_level?.toUpperCase()}</strong>
+                        <span>Score: <b>${data.risk_score}%</b></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Confidence</span>
+                        <span class="fw-bold">${data.confidence || 'N/A'}%</span>
+                    </div>
+                    <div class="small border-top pt-2 mt-1"><i class="bi bi-robot me-1"></i>${data.explanation}</div>
+                </div>
+            `;
+            document.getElementById('simStatusBadge').textContent = 'Live';
+            document.getElementById('simStatusBadge').className = 'badge bg-success';
+        } catch {
+            document.getElementById('simStatusBadge').textContent = 'Error';
+            document.getElementById('simStatusBadge').className = 'badge bg-danger';
+        }
+    }, 300);
+}
+
+// Bind slider inputs
+document.querySelectorAll('.sim-slider').forEach(s => s.addEventListener('input', runSimulation));
+
+// Reset button
+document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('simRainfall').value = 50;
+    document.getElementById('simWind').value = 30;
+    document.getElementById('simRiver').value = 3;
+    document.getElementById('simTemp').value = 28;
+    runSimulation();
+});
+
+// Preset Scenarios
+function loadScenario(type) {
+    const scenarios = {
+        flood:   { rainfall: 250, wind: 60, river: 12, temp: 28 },
+        cyclone: { rainfall: 150, wind: 180, river: 8, temp: 25 },
+        normal:  { rainfall: 20, wind: 15, river: 1.5, temp: 30 }
+    };
+    const s = scenarios[type];
+    document.getElementById('simRainfall').value = s.rainfall;
+    document.getElementById('simWind').value = s.wind;
+    document.getElementById('simRiver').value = s.river;
+    document.getElementById('simTemp').value = s.temp;
+    runSimulation();
+}
+
+// Initial render
+updateSimMap(50, 30, 3);
+</script>
+{% endblock %}

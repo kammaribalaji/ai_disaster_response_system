@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Risk Check - AI Disaster Response{% endblock %}
+{% block page_title %}AI Risk Check{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="row g-4 justify-content-center">
+        <!-- Form -->
+        <div class="col-12 col-xl-4">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-input-cursor-text"></i> Environmental Data</h5>
+                </div>
+                
+                <form id="predictForm">
+                    <div class="row g-3">
+                        <div class="col-md-6 text-start">
+                            <label class="form-label">Rainfall (mm)</label>
+                            <input type="number" class="form-control" id="rainfall" required step="any" placeholder="e.g. 150">
+                        </div>
+                        <div class="col-md-6 text-start">
+                            <label class="form-label">Water Level (m)</label>
+                            <input type="number" class="form-control" id="water_level" required step="any" placeholder="e.g. 5.5">
+                        </div>
+                        <div class="col-md-6 text-start">
+                            <label class="form-label">Wind Speed (km/h)</label>
+                            <input type="number" class="form-control" id="wind_speed" required step="any" placeholder="e.g. 80">
+                        </div>
+                        <div class="col-md-6 text-start">
+                            <label class="form-label">Temperature (°C)</label>
+                            <input type="number" class="form-control" id="temperature" required step="any" placeholder="e.g. 28">
+                        </div>
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary w-100 py-2" id="predictBtn">
+                                <i class="bi bi-cpu me-2"></i> CHECK RISK
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="col-12 col-xl-8">
+            <div class="panel-card h-100 d-flex flex-column align-items-center justify-content-center text-center p-5 bg-light fade-in" id="resultCard" style="border: 2px dashed #d1d5db; min-height: 480px;">
+                <i class="bi bi-clock-history display-1 text-secondary mb-3 opacity-50"></i>
+                <h4 class="text-secondary fw-bold">Awaiting Data</h4>
+                <p class="text-muted">Enter metrics to generate an AI risk assessment.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('predictForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('predictBtn');
+    const resultCard = document.getElementById('resultCard');
+    
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> CHECKING...';
+    btn.disabled = true;
+
+    const data = {
+        rainfall: parseFloat(document.getElementById('rainfall').value),
+        water_level: parseFloat(document.getElementById('water_level').value),
+        wind_speed: parseFloat(document.getElementById('wind_speed').value),
+        temperature: parseFloat(document.getElementById('temperature').value)
+    };
+
+    try {
+        const response = await fetch('/api/predict', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        // Reset card styling
+        resultCard.style.border = 'none';
+        resultCard.style.backgroundColor = '#fff';
+        resultCard.className = 'panel-card h-100 p-4 fade-in w-100';
+        
+        if (result.error) {
+            resultCard.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center h-100"><i class="bi bi-exclamation-triangle display-1 text-danger mb-3"></i><h4 class="text-danger">Error</h4><p>${result.error}</p></div>`;
+        } else {
+            let colorClass = 'text-success';
+            let icon = 'bi-shield-check';
+            let chartColor = '#10b981';
+            let chartBg = 'rgba(16, 185, 129, 0.1)';
+            
+            if (result.risk_level === 'High') {
+                colorClass = 'text-danger';
+                icon = 'bi-exclamation-octagon';
+                chartColor = '#ef4444';
+                chartBg = 'rgba(239, 68, 68, 0.1)';
+            } else if (result.risk_level === 'Medium') {
+                colorClass = 'text-warning';
+                icon = 'bi-exclamation-triangle';
+                chartColor = '#f59e0b';
+                chartBg = 'rgba(245, 158, 11, 0.1)';
+            }
+
+            // ExAI factors
+            let factorsHtml = '<div class="row mt-2 w-100 text-start">';
+            if(result.exai_factors && result.exai_factors.length > 0) {
+                Array.from(result.exai_factors).forEach((f, idx) => {
+                    let pbg = idx === 0 ? 'bg-danger' : 'bg-primary';
+                    factorsHtml += `
+                        <div class="col-12 mb-3">
+                            <div class="d-flex justify-content-between text-muted small mb-1">
+                                <span class="fw-bold text-dark text-capitalize">${f.feature.replace('_', ' ')}</span>
+                                <span>${(f.importance*100).toFixed(1)}% Weight</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar ${pbg}" style="width: ${f.importance * 100}%"></div>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                factorsHtml += `<div class="col-12 text-muted small">No critical factors detected.</div>`;
+            }
+            factorsHtml += '</div>';
+
+            resultCard.innerHTML = `
+                <div class="row w-100 h-100">
+                    <div class="col-12 col-md-5 d-flex flex-column align-items-center text-center justify-content-center border-end pe-4">
+                        <i class="bi ${icon} display-2 ${colorClass} mb-2"></i>
+                        <h3 class="${colorClass} fw-bold mb-2">${result.risk_level.toUpperCase()} RISK</h3>
+                        
+                        <!-- 3-Metric Scorecard -->
+                        <div class="row g-2 w-100 mb-3">
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded border text-center">
+                                    <div class="small text-muted fw-semibold">RISK SCORE</div>
+                                    <div class="fs-4 fw-bold ${colorClass}">${result.risk_score}%</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded border text-center">
+                                    <div class="small text-muted fw-semibold">CONFIDENCE</div>
+                                    <div class="fs-4 fw-bold text-primary">${result.confidence || '—'}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-light border border-secondary text-start small w-100 shadow-sm" style="background:#f8fafc">
+                            <strong><i class="bi bi-robot me-1 text-primary"></i> AI Analysis:</strong><br>
+                            ${result.explanation}
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-md-7 ps-md-4 mt-4 mt-md-0 d-flex flex-column">
+                        <div class="mb-4 text-start">
+                            <h6 class="text-secondary text-uppercase mb-2 fw-bold"><i class="bi bi-bar-chart-steps me-2"></i>Risk Factors</h6>
+                            ${factorsHtml}
+                        </div>
+                        <div class="flex-grow-1 text-start d-flex flex-column">
+                            <h6 class="text-secondary text-uppercase mb-2 fw-bold"><i class="bi bi-graph-up me-2"></i>24-Hour Forecast Trend</h6>
+                            <div class="flex-grow-1" style="min-height: 180px; position: relative;">
+                                <canvas id="forecastChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Draw Chart
+            if (result.forecast) {
+                Chart.defaults.font.family = "'Inter', sans-serif";
+                new Chart(document.getElementById('forecastChart'), {
+                    type: 'line',
+                    data: {
+                        labels: result.forecast.labels,
+                        datasets: [{
+                            label: 'Risk %',
+                            data: result.forecast.data,
+                            borderColor: chartColor,
+                            backgroundColor: chartBg,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, border: {display: false} },
+                            x: { grid: {display: false}, border: {display: false} }
+                        }
+                    }
+                });
+            }
+        }
+
+    } catch (err) {
+        console.error(err);
+        resultCard.innerHTML = `<div class="d-flex flex-column align-items-center justify-content-center h-100"><i class="bi bi-wifi-off display-1 text-danger mb-3"></i><h4 class="text-danger">Network Error</h4><p>Unable to connect to AI engine.</p></div>`;
+    } finally {
+        btn.innerHTML = '<i class="bi bi-cpu me-2"></i> CHECK RISK';
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

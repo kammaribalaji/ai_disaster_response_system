@@ -1,0 +1,614 @@
+{% extends 'base.html' %}
+{% block title %}Admin Command Center{% endblock %}
+{% block page_title %}Admin Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+<!-- ── Row 1: Stat Cards ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-primary-subtle rounded mx-auto mb-2" style="width:44px"><i class="bi bi-radar text-primary fs-5"></i></div>
+            <h6 class="stat-title">Zones</h6><h3 class="stat-value text-primary mb-0" id="zonesCount">—</h3>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-danger-subtle rounded mx-auto mb-2" style="width:44px"><i class="bi bi-exclamation-triangle text-danger fs-5"></i></div>
+            <h6 class="stat-title">Alerts</h6><h3 class="stat-value text-danger mb-0" id="alertsCount">—</h3>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-warning-subtle rounded mx-auto mb-2" style="width:44px"><i class="bi bi-truck text-warning fs-5"></i></div>
+            <h6 class="stat-title">Rescues</h6><h3 class="stat-value text-warning mb-0" id="rescueCount">—</h3>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-success-subtle rounded mx-auto mb-2" style="width:44px"><i class="bi bi-box2-heart text-success fs-5"></i></div>
+            <h6 class="stat-title">Relief</h6><h3 class="stat-value text-success mb-0" id="reliefCount">—</h3>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-info-subtle rounded mx-auto mb-2" style="width:44px"><i class="bi bi-people text-info fs-5"></i></div>
+            <h6 class="stat-title">Evacuated</h6><h3 class="stat-value text-info mb-0" id="evacuatedCount">—</h3>
+        </div>
+    </div>
+    <div class="col-6 col-xl-2">
+        <div class="stat-card text-center">
+            <div class="p-2 bg-purple-subtle rounded mx-auto mb-2" style="width:44px; background:#f3e8ff"><i class="bi bi-lightning-charge" style="color:#9333ea; font-size:1.2rem"></i></div>
+            <h6 class="stat-title">Efficiency</h6><h3 class="stat-value mb-0" style="color:#9333ea" id="efficiencyPct">—</h3>
+        </div>
+    </div>
+</div>
+
+<!-- ── Row 2: AI Insights + Map ──────────────────────────────── -->
+<div class="row g-4 mb-4">
+    <!-- AI Decision Insights -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-robot"></i> AI Decision Insights</h5>
+                <span class="badge bg-primary-subtle">Live</span>
+            </div>
+            <!-- Top 3 Dangerous Zones -->
+            <div class="mb-3">
+                <div class="small text-muted fw-semibold mb-2 text-uppercase">⚠ Top 3 Danger Zones</div>
+                <div class="d-flex flex-column gap-2" id="dangerZones">
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-danger-subtle rounded border-start border-danger border-3">
+                        <span class="fw-semibold small text-dark">#1 Zone G</span>
+                        <div><span class="badge bg-danger me-1">90%</span><small class="text-muted">Flood + Rain</small></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-warning-subtle rounded border-start border-warning border-3">
+                        <span class="fw-semibold small text-dark">#2 Zone D</span>
+                        <div><span class="badge bg-warning text-dark me-1">80%</span><small class="text-muted">High Wind</small></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border-start border-secondary border-3">
+                        <span class="fw-semibold small text-dark">#3 Zone B</span>
+                        <div><span class="badge bg-secondary me-1">50%</span><small class="text-muted">Rising Water</small></div>
+                    </div>
+                </div>
+            </div>
+            <!-- AI Recommendations -->
+            <div class="small text-muted fw-semibold mb-2 text-uppercase">🧠 Suggested Actions</div>
+            <div class="d-flex flex-column gap-2" id="aiActions">
+                <div class="p-2 rounded bg-danger-subtle border-start border-danger border-2 small">
+                    <i class="bi bi-truck text-danger me-1"></i><strong>Send rescue teams</strong> to Zone G immediately
+                </div>
+                <div class="p-2 rounded bg-warning-subtle border-start border-warning border-2 small">
+                    <i class="bi bi-broadcast text-warning me-1"></i><strong>Broadcast evacuation order</strong> for Zone D residents
+                </div>
+                <div class="p-2 rounded bg-primary-subtle border-start border-primary border-2 small">
+                    <i class="bi bi-box2-heart text-primary me-1"></i><strong>Pre-position 200 relief kits</strong> at North Stadium
+                </div>
+            </div>
+            <!-- Alert Broadcast -->
+            <div class="mt-3 border-top pt-3">
+                <div class="small text-muted fw-semibold mb-2 text-uppercase">📢 Broadcast Alert</div>
+                <div class="d-flex gap-2 mb-2">
+                    <select class="form-select form-select-sm" id="broadcastTarget">
+                        <option>All</option><option>Rescue Teams</option><option>Public</option>
+                    </select>
+                </div>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="broadcastMsg" placeholder="Type alert message...">
+                    <button class="btn btn-danger" id="broadcastBtn"><i class="bi bi-megaphone"></i></button>
+                </div>
+                <div id="broadcastResult" class="mt-1 small text-success d-none">✓ Alert sent!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-layer Map -->
+    <div class="col-12 col-xl-8">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-map"></i> Multi-Layer Command Map</h5>
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="layerRisk" checked onchange="toggleLayer('risk',this.checked)">
+                        <label class="form-check-label small" for="layerRisk"><span style="color:#ef4444">●</span> Risk Heat</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="layerPop" checked onchange="toggleLayer('pop',this.checked)">
+                        <label class="form-check-label small" for="layerPop"><span style="color:#8b5cf6">●</span> Population</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="layerTeams" checked onchange="toggleLayer('teams',this.checked)">
+                        <label class="form-check-label small" for="layerTeams"><span style="color:#3b82f6">●</span> Teams</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="layerShelters" checked onchange="toggleLayer('shelters',this.checked)">
+                        <label class="form-check-label small" for="layerShelters"><span style="color:#10b981">●</span> Shelters</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="checkbox" id="layerFlood" checked onchange="toggleLayer('flood',this.checked)">
+                        <label class="form-check-label small" for="layerFlood"><span style="color:#06b6d4">●</span> Flood Spread</label>
+                    </div>
+                </div>
+            </div>
+            <div id="riskMap" style="height:400px; border-radius:10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Row 3: Performance + Predictive + Resources ────────────── -->
+<div class="row g-4 mb-4">
+    <!-- Performance Dashboard -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-speedometer2"></i> Performance</h5>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Avg Response Time</span>
+                        <span class="fw-bold text-dark" id="responseTime">—</span>
+                    </div>
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-primary" id="responseBar" style="width:0"></div></div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Relief Success Rate</span>
+                        <span class="fw-bold text-success" id="reliefPct">—</span>
+                    </div>
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-success" id="reliefBar" style="width:0"></div></div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Team Efficiency</span>
+                        <span class="fw-bold" style="color:#9333ea" id="teamEff">—</span>
+                    </div>
+                    <div class="progress" style="height:6px;"><div class="progress-bar" style="background:#9333ea;width:0" id="effBar"></div></div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Zones Covered</span>
+                        <span class="fw-bold text-dark" id="zonesCovered">—</span>
+                    </div>
+                    <div class="progress" style="height:6px;"><div class="progress-bar bg-info" id="zonesBar" style="width:0"></div></div>
+                </div>
+            </div>
+            <!-- Resource Allocation -->
+            <div class="border-top mt-3 pt-3">
+                <div class="small text-muted fw-semibold mb-2 text-uppercase">📦 Resource Allocation</div>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span class="small"><i class="bi bi-box-seam text-warning me-2"></i>Food Kits</span>
+                        <div class="d-flex gap-1 align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="adjustResource('food', -10)">−</button>
+                            <span class="small fw-bold" id="foodQty" style="min-width:40px; text-align:center">300</span>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="adjustResource('food', 10)">+</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span class="small"><i class="bi bi-hospital text-danger me-2"></i>Medical Kits</span>
+                        <div class="d-flex gap-1 align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="adjustResource('medical', -10)">−</button>
+                            <span class="small fw-bold" id="medicalQty" style="min-width:40px; text-align:center">150</span>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="adjustResource('medical', 10)">+</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span class="small"><i class="bi bi-people text-primary me-2"></i>Teams</span>
+                        <div class="d-flex gap-1 align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="adjustResource('teams', -1)">−</button>
+                            <span class="small fw-bold" id="teamsQty" style="min-width:40px; text-align:center">4</span>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="adjustResource('teams', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictive Chart -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-graph-up-arrow"></i> 24-Hour Risk Forecast</h5>
+                <span class="badge bg-warning-subtle">Zone G</span>
+            </div>
+            <div style="height:200px;"><canvas id="forecastChart"></canvas></div>
+            <div class="mt-3 border-top pt-3">
+                <div class="small text-muted fw-semibold mb-2 text-uppercase">Trend Analysis</div>
+                <div class="d-flex justify-content-between small">
+                    <div class="text-center"><div class="text-muted">Peak Risk</div><div class="fw-bold text-danger">92%</div></div>
+                    <div class="text-center"><div class="text-muted">at Hour</div><div class="fw-bold">+18h</div></div>
+                    <div class="text-center"><div class="text-muted">Now</div><div class="fw-bold text-warning">78%</div></div>
+                    <div class="text-center"><div class="text-muted">Trend</div><div class="fw-bold text-danger">↑ Rising</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Monitoring -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-clipboard-data"></i> Report Monitor</h5>
+                <select class="form-select form-select-sm" id="reportFilter" style="width:auto;" onchange="filterReports()">
+                    <option value="all">All</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+            <div id="reportList" style="max-height:360px; overflow-y:auto;">
+                <div class="text-muted small text-center py-3"><span class="spinner-border spinner-border-sm"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Row 4: Activity Log + Image Upload + Weekly Chart ─────── -->
+<div class="row g-4">
+    <div class="col-12 col-xl-4">
+        <div class="panel-card">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-activity"></i> Activity Log</h5></div>
+            <div id="activityLog" style="max-height:260px; overflow-y:auto;">
+                <div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="panel-card">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-image"></i> Upload Evidence</h5></div>
+            <div class="d-flex flex-column gap-3">
+                <div>
+                    <label class="form-label small fw-semibold">🛰 Satellite Image</label>
+                    <input type="file" class="form-control form-control-sm" accept="image/*" id="satelliteUpload">
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">📷 Zone / Damage Photo</label>
+                    <input type="file" class="form-control form-control-sm" accept="image/*" id="zoneUpload">
+                </div>
+                <div id="uploadPreview" class="d-none">
+                    <img id="previewImg" src="" class="img-fluid rounded border" style="max-height:140px;" alt="Preview">
+                </div>
+                <button class="btn btn-primary btn-sm" id="uploadBtn" onclick="handleUpload()">
+                    <i class="bi bi-cloud-upload me-2"></i>Upload to System
+                </button>
+                <div id="uploadResult" class="alert alert-success small d-none py-2">✓ Image uploaded and shared with rescue teams.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="panel-card">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-bar-chart"></i> Weekly Alerts</h5></div>
+            <div style="height:260px;"><canvas id="disasterChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Row 5: Simulation Control ────────────── -->
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-sliders text-info"></i> Simulation Control Center</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-info-subtle text-info" id="simStatusBadge">SIMULATION ACTIVE</span>
+                    <button class="btn btn-sm btn-outline-info" id="simToggleBtn" onclick="toggleSimulation()">Pause Simulation</button>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="small text-muted fw-semibold mb-2 text-uppercase">🌊 Flood Spread (Hour Progress)</div>
+                    <label class="form-label small">Simulation Hour: <strong id="adminSimHour">+6h</strong></label>
+                    <input type="range" class="form-range" id="adminSimSlider" min="1" max="24" value="6" oninput="adminSimUpdate(this.value)">
+                    <div class="d-flex flex-column gap-2 mt-2">
+                        <div><div class="d-flex justify-content-between small"><span class="text-danger">Zone G</span><span id="aSimG">85%</span></div><div class="progress" style="height:6px"><div class="progress-bar bg-danger" id="aSimBarG" style="width:85%"></div></div></div>
+                        <div><div class="d-flex justify-content-between small"><span class="text-warning">Zone D</span><span id="aSimD">62%</span></div><div class="progress" style="height:6px"><div class="progress-bar bg-warning" id="aSimBarD" style="width:62%"></div></div></div>
+                        <div><div class="d-flex justify-content-between small"><span class="text-info">Zone B</span><span id="aSimB">38%</span></div><div class="progress" style="height:6px"><div class="progress-bar bg-info" id="aSimBarB" style="width:38%"></div></div></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small text-muted fw-semibold mb-2 text-uppercase">📊 Scenario Settings</div>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded">
+                            <span class="small">Scenario Type</span>
+                            <select class="form-select form-select-sm w-auto" id="scenarioType">
+                                <option>Cyclone + Flood (Cat 3)</option>
+                                <option>Flash Flood</option>
+                                <option>Earthquake</option>
+                                <option>Industrial Hazard</option>
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded">
+                            <span class="small">Rainfall Intensity</span>
+                            <select class="form-select form-select-sm w-auto">
+                                <option>Extreme (>120mm)</option>
+                                <option>Heavy (80-120mm)</option>
+                                <option>Moderate (40-80mm)</option>
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 bg-warning-subtle rounded">
+                            <span class="small fw-semibold">Predicted Peak</span>
+                            <span class="fw-bold text-danger">+18h</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small text-muted fw-semibold mb-2 text-uppercase">🎯 Simulation Actions</div>
+                    <div class="d-flex flex-column gap-2">
+                        <button class="btn btn-danger btn-sm" onclick="broadcastSimAlert()"><i class="bi bi-megaphone me-2"></i>Broadcast Simulation Alert</button>
+                        <button class="btn btn-primary btn-sm" onclick="deployVirtualTeam()"><i class="bi bi-truck me-2"></i>Deploy Virtual Rescue Team</button>
+                        <button class="btn btn-warning btn-sm" onclick="triggerSimEvent()"><i class="bi bi-lightning-charge me-2"></i>Trigger Flood Event</button>
+                        <div class="alert alert-info small py-2 mb-0" id="simActionResult" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+/* ── Resource counters ──────── */
+const res = { food: 300, medical: 150, teams: 4 };
+function adjustResource(type, delta) {
+    res[type] = Math.max(0, res[type] + delta);
+    const ids = { food: 'foodQty', medical: 'medicalQty', teams: 'teamsQty' };
+    document.getElementById(ids[type]).textContent = res[type];
+}
+
+/* ── ADMIN MAP (Multi-Layer) ─ */
+const adminMap = L.map('riskMap').setView([12.96, 77.60], 11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO', subdomains: 'abcd'
+}).addTo(adminMap);
+
+const zoneData = [
+    {name:'Zone G', lat:12.9716, lng:77.5946, risk:90, pop:45000, color:'#ef4444'},
+    {name:'Zone D', lat:12.9352, lng:77.6245, risk:80, pop:32000, color:'#f59e0b'},
+    {name:'Zone B', lat:12.9141, lng:77.6308, risk:50, pop:15000, color:'#f59e0b'},
+    {name:'Zone C', lat:12.9600, lng:77.6000, risk:25, pop:25000, color:'#22c55e'},
+    {name:'Zone A', lat:13.0827, lng:80.2707, risk:10, pop:60000, color:'#10b981'},
+    {name:'Zone E', lat:12.9450, lng:77.5800, risk:20, pop:18000, color:'#10b981'},
+];
+
+// Layers storage
+const mapLayers = { risk:[], pop:[], teams:[], shelters:[], flood:[] };
+
+// Risk heatmap circles
+zoneData.forEach(z => {
+    const c = L.circleMarker([z.lat, z.lng], {
+        radius: Math.max(16, z.risk/5), fillColor:z.color, color:z.color, weight:2, fillOpacity:0.45
+    }).bindPopup(`<b style="font-size:1rem">${z.name}</b><br>Risk: <b style="color:${z.color}">${z.risk}%</b><br>Population: <b>${z.pop.toLocaleString()}</b>`);
+    c.addTo(adminMap);
+    mapLayers.risk.push(c);
+});
+
+// Population density (larger translucent rings)
+zoneData.forEach(z => {
+    const c = L.circleMarker([z.lat, z.lng], {
+        radius: Math.max(20, z.pop/2500), fillColor:'#8b5cf6', color:'transparent', weight:0, fillOpacity:0.12
+    });
+    c.addTo(adminMap);
+    mapLayers.pop.push(c);
+});
+
+// Rescue teams
+const teamIcon = (color, lbl) => L.divIcon({
+    html:`<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.55rem;font-weight:bold;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${lbl}</div>`,
+    iconSize:[28,28], iconAnchor:[14,14], className:''
+});
+[
+    {lat:12.968, lng:77.592, color:'#3b82f6', lbl:'Aα', info:'Team Alpha · Zone G · Rescue Boats'},
+    {lat:12.933, lng:77.620, color:'#f59e0b', lbl:'Bβ', info:'Team Bravo · Zone D · Medical'},
+    {lat:12.975, lng:77.610, color:'#10b981', lbl:'✈', info:'Air Unit 1 · Patrol · Overhead'},
+].forEach(t => {
+    const m = L.marker([t.lat, t.lng], {icon: teamIcon(t.color, t.lbl)}).bindPopup(`<b>${t.info}</b>`);
+    m.addTo(adminMap);
+    mapLayers.teams.push(m);
+});
+
+// Shelters
+[
+    {name:'North Stadium', lat:13.085, lng:80.275, cap:'450/1500'},
+    {name:'Central High School', lat:12.970, lng:77.590, cap:'320/500'},
+    {name:'Community Hall B', lat:12.925, lng:77.615, cap:'190/200 ⚠️'},
+].forEach(s => {
+    const m = L.circleMarker([s.lat, s.lng], {
+        radius:12, fillColor:'#10b981', color:'#059669', weight:2, fillOpacity:0.9
+    }).bindPopup(`🏠 <b>${s.name}</b><br>${s.cap}`);
+    m.addTo(adminMap);
+    mapLayers.shelters.push(m);
+});
+
+// Flood spread zones
+zoneData.filter(z => z.risk > 40).forEach(z => {
+    const c = L.circleMarker([z.lat, z.lng], {
+        radius: z.risk / 4, fillColor:'#06b6d4', color:'#0891b2', weight:1, fillOpacity:0.18, dashArray:'4,4'
+    }).bindPopup(`🌊 Flood spread — ${z.name}: ${Math.round(z.risk * 0.85)}% affected`);
+    c.addTo(adminMap);
+    mapLayers.flood.push(c);
+});
+
+function toggleLayer(type, visible) {
+    mapLayers[type].forEach(l => {
+        if (visible) l.addTo(adminMap);
+        else adminMap.removeLayer(l);
+    });
+}
+
+/* ── SIMULATION CONTROLS ─── */
+let simRunning = true;
+function toggleSimulation() {
+    simRunning = !simRunning;
+    document.getElementById('simStatusBadge').textContent = simRunning ? 'SIMULATION ACTIVE' : 'SIMULATION PAUSED';
+    document.getElementById('simToggleBtn').textContent = simRunning ? 'Pause Simulation' : 'Resume Simulation';
+}
+function adminSimUpdate(hour) {
+    document.getElementById('adminSimHour').textContent = '+' + hour + 'h';
+    const f = hour / 24;
+    const g = Math.min(99, Math.round(60 + 35 * f));
+    const d = Math.min(92, Math.round(40 + 48 * f));
+    const b = Math.min(80, Math.round(20 + 56 * f));
+    document.getElementById('aSimG').textContent = g + '%'; document.getElementById('aSimBarG').style.width = g + '%';
+    document.getElementById('aSimD').textContent = d + '%'; document.getElementById('aSimBarD').style.width = d + '%';
+    document.getElementById('aSimB').textContent = b + '%'; document.getElementById('aSimBarB').style.width = b + '%';
+}
+function broadcastSimAlert() {
+    const el = document.getElementById('simActionResult');
+    el.textContent = '📢 Simulation alert broadcast to all teams and public!';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display='none', 3000);
+}
+function deployVirtualTeam() {
+    const el = document.getElementById('simActionResult');
+    el.textContent = '🚑 Virtual rescue team deployed to Zone G!';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display='none', 3000);
+}
+function triggerSimEvent() {
+    const el = document.getElementById('simActionResult');
+    el.textContent = '🌊 Flash flood event triggered in Zone G — rescue units alerted!';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display='none', 3000);
+}
+
+/* ── Image preview ──────────── */
+document.getElementById('satelliteUpload').addEventListener('change', showPreview);
+document.getElementById('zoneUpload').addEventListener('change', showPreview);
+function showPreview(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        document.getElementById('previewImg').src = ev.target.result;
+        document.getElementById('uploadPreview').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+}
+function handleUpload() {
+    const btn = document.getElementById('uploadBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Uploading...';
+    btn.disabled = true;
+    setTimeout(() => {
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Upload to System';
+        btn.disabled = false;
+        document.getElementById('uploadResult').classList.remove('d-none');
+        setTimeout(() => document.getElementById('uploadResult').classList.add('d-none'), 4000);
+    }, 1400);
+}
+
+/* ── Broadcast ──────────────── */
+document.getElementById('broadcastBtn').addEventListener('click', async () => {
+    const target = document.getElementById('broadcastTarget').value;
+    const msg = document.getElementById('broadcastMsg').value.trim();
+    if (!msg) return;
+    const res2 = await fetch('/api/alerts/broadcast', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ target, message: msg })
+    });
+    if (res2.ok) {
+        const el = document.getElementById('broadcastResult');
+        el.classList.remove('d-none');
+        document.getElementById('broadcastMsg').value = '';
+        setTimeout(() => el.classList.add('d-none'), 3000);
+    }
+});
+
+/* ── Mock reports ───────────── */
+const mockReports = [
+    { id:1, name:'Ravi Kumar', zone:'Zone G', urgency:'urgent', status:'Pending', time:'16:05' },
+    { id:2, name:'Priya Sharma', zone:'Zone D', urgency:'urgent', status:'In Progress', time:'15:48' },
+    { id:3, name:'Amit Singh', zone:'Zone B', urgency:'normal', status:'Pending', time:'15:30' },
+    { id:4, name:'Lakshmi R.', zone:'Zone G', urgency:'urgent', status:'Resolved', time:'14:55' },
+    { id:5, name:'Mohan Das', zone:'Zone A', urgency:'normal', status:'Pending', time:'14:20' },
+];
+function filterReports() {
+    const filter = document.getElementById('reportFilter').value;
+    const filtered = filter === 'all' ? mockReports
+        : filter === 'urgent' ? mockReports.filter(r => r.urgency === 'urgent')
+        : mockReports.filter(r => r.status === 'Pending');
+
+    const badgeMap = { Pending:'warning', 'In Progress':'primary', Resolved:'success' };
+    document.getElementById('reportList').innerHTML = filtered.map(r => `
+        <div class="d-flex align-items-start p-2 border-bottom gap-2">
+            <div class="flex-grow-1">
+                <div class="small fw-semibold text-dark">${r.name} — ${r.zone}</div>
+                <div class="text-muted" style="font-size:0.78rem">${r.time}</div>
+            </div>
+            <span class="badge bg-${r.urgency==='urgent'?'danger':'secondary'}-subtle text-${r.urgency==='urgent'?'danger':'secondary'} small">${r.urgency}</span>
+            <span class="badge bg-${badgeMap[r.status]}-subtle text-${badgeMap[r.status]} small">${r.status}</span>
+        </div>`).join('');
+}
+filterReports();
+
+let fcInst=null, dcInst=null;
+
+/* ── Dashboard + Performance poll ── */
+async function loadAdmin() {
+    const [dash, perf] = await Promise.all([
+        fetch('/api/dashboard').then(r=>r.json()).catch(()=>null),
+        fetch('/api/performance').then(r=>r.json()).catch(()=>null)
+    ]);
+
+    if (dash) {
+        document.getElementById('zonesCount').textContent = dash.monitored_zones;
+        document.getElementById('alertsCount').textContent = dash.high_risk_alerts;
+        document.getElementById('rescueCount').textContent = dash.active_rescue_ops;
+        document.getElementById('reliefCount').textContent = dash.relief_delivered;
+
+        if (dash.activity_log) {
+            document.getElementById('activityLog').innerHTML = dash.activity_log.map(item => `
+                <div class="d-flex align-items-start px-3 py-2 border-bottom">
+                    <div class="me-3 mt-1 rounded-circle d-flex align-items-center justify-content-center bg-${item.type}-subtle text-${item.type}" style="width:30px;height:30px">
+                        <i class="bi ${item.icon} small"></i>
+                    </div>
+                    <div><div class="small fw-semibold text-dark">${item.msg}</div><div class="text-muted" style="font-size:0.75rem">${item.time}</div></div>
+                </div>`).join('');
+        }
+
+        if (dash.timeline && !dcInst) {
+            dcInst = new Chart(document.getElementById('disasterChart'), {
+                type:'line', data:{ labels:dash.timeline.labels,
+                    datasets:[{label:'Alerts', data:dash.timeline.data, borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.1)', borderWidth:2, fill:true, tension:0.4}]
+                },
+                options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}, x:{grid:{display:false}}} }
+            });
+        }
+    }
+
+    if (perf) {
+        document.getElementById('evacuatedCount').textContent = perf.civilians_evacuated;
+        document.getElementById('efficiencyPct').textContent = perf.team_efficiency_pct + '%';
+        document.getElementById('responseTime').textContent = perf.avg_response_time_mins + ' min';
+        document.getElementById('reliefPct').textContent = perf.relief_success_pct + '%';
+        document.getElementById('teamEff').textContent = perf.team_efficiency_pct + '%';
+        document.getElementById('zonesCovered').textContent = perf.zones_covered + '/9';
+        document.getElementById('responseBar').style.width = Math.min(100, (perf.avg_response_time_mins / 30) * 100) + '%';
+        document.getElementById('reliefBar').style.width = perf.relief_success_pct + '%';
+        document.getElementById('effBar').style.width = perf.team_efficiency_pct + '%';
+        document.getElementById('zonesBar').style.width = (perf.zones_covered / 9 * 100) + '%';
+    }
+}
+
+/* ── 24h Forecast ───────────── */
+async function loadForecast() {
+    const data = await fetch('/api/predict', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ rainfall:150, wind_speed:62, river_level:5.2, temperature:28 })
+    }).then(r=>r.json()).catch(()=>null);
+
+    if (data && data.forecast && !fcInst) {
+        fcInst = new Chart(document.getElementById('forecastChart'), {
+            type:'line', data:{ labels:data.forecast.labels,
+                datasets:[{label:'Risk %', data:data.forecast.data, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.1)', borderWidth:2.5, fill:true, tension:0.4, pointRadius:3}]
+            },
+            options:{ responsive:true, maintainAspectRatio:false, scales:{y:{min:0,max:100}, x:{grid:{display:false}}}, plugins:{legend:{display:false}} }
+        });
+    }
+}
+
+loadAdmin();
+loadForecast();
+setInterval(loadAdmin, 5000);
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{
+  "/": {
+    "status": 200
+  },
+  "/dashboard": {
+    "status": 200
+  },
+  "/prediction": {
+    "status": 200
+  },
+  "/routes": {
+    "status": 200
+  },
+  "/relief": {
+    "status": 200
+  },
+  "/api/dashboard": {
+    "status": 200
+  },
+  "/api/risk-map": {
+    "status": 200
+  },
+  "/api/route?start=Zone%20A&end=Zone%20G": {
+    "status": 200
+  },
+  "/api/relief-priority": {
+    "status": 200
+  },
+  "/api/predict": {
+    "status": 200
+  }
+}

@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AI Disaster Response{% endblock %}
+{% block page_title %}Disaster Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <!-- Top Stats (auto-refresh every 5s) -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="stat-title">Monitored Zones</h6>
+                        <h2 class="stat-value text-primary" id="zonesCount">...</h2>
+                    </div>
+                    <div class="p-3 bg-primary-subtle rounded text-primary">
+                        <i class="bi bi-radar fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="stat-title">High Risk Alerts</h6>
+                        <h2 class="stat-value text-danger" id="alertsCount">...</h2>
+                    </div>
+                    <div class="p-3 bg-danger-subtle rounded text-danger pulse-high-risk">
+                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="stat-title">Active Rescues</h6>
+                        <h2 class="stat-value text-warning" id="rescueOpsCount">...</h2>
+                    </div>
+                    <div class="p-3 bg-warning-subtle rounded text-warning">
+                        <i class="bi bi-truck fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="stat-title">Relief Delivered</h6>
+                        <h2 class="stat-value text-success" id="reliefCount">...</h2>
+                    </div>
+                    <div class="p-3 bg-success-subtle rounded text-success">
+                        <i class="bi bi-box2-heart fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Resource Suggestion Banner -->
+    <div class="alert border-0 shadow-sm mb-4 d-flex align-items-center" style="background: linear-gradient(135deg, #dbeafe, #ede9fe);" id="suggestionBanner" role="alert">
+        <i class="bi bi-robot fs-3 text-primary me-3"></i>
+        <div>
+            <strong class="text-dark">AI Resource Recommendation</strong><br>
+            <span class="text-secondary small" id="suggestionText">Analyzing operational data...</span>
+        </div>
+    </div>
+
+    <!-- Main Row: Map + Activity Log -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="panel-card h-100">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-geo-alt"></i> Live Risk Map</h5>
+                    <span class="badge bg-success-subtle">Active Monitoring</span>
+                </div>
+                <div id="riskMap" style="height: 380px; border-radius: 8px;"></div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-xl-4">
+            <div class="panel-card h-100 d-flex flex-column">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-activity"></i> Activity Log</h5>
+                    <span class="badge bg-primary-subtle">Live</span>
+                </div>
+                <div id="activityLog" class="flex-grow-1 overflow-auto" style="max-height: 380px;">
+                    <div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4">
+        <div class="col-12 col-xl-5">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-bar-chart"></i> Weekly Alerts</h5>
+                </div>
+                <div style="height: 250px;">
+                    <canvas id="disasterChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-7">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-bar-chart-line"></i> Zone Risk vs Population</h5>
+                </div>
+                <div style="height: 250px;">
+                    <canvas id="zoneChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let zoneChartInstance = null;
+let disasterChartInstance = null;
+
+async function loadDashboard() {
+    const data = await fetch('/api/dashboard').then(r => r.json()).catch(() => null);
+    if (!data) return;
+
+    document.getElementById('zonesCount').textContent = data.monitored_zones;
+    document.getElementById('alertsCount').textContent = data.high_risk_alerts;
+    document.getElementById('rescueOpsCount').textContent = data.active_rescue_ops;
+    document.getElementById('reliefCount').textContent = data.relief_delivered;
+
+    if (data.resource_suggestion) {
+        document.getElementById('suggestionText').textContent = data.resource_suggestion;
+    }
+
+    // Activity Log
+    if (data.activity_log) {
+        const logEl = document.getElementById('activityLog');
+        logEl.innerHTML = data.activity_log.map(item => `
+            <div class="d-flex align-items-start px-3 py-2 border-bottom activity-item">
+                <div class="me-3 mt-1">
+                    <div style="width:32px;height:32px;" class="rounded-circle d-flex align-items-center justify-content-center bg-${item.type}-subtle text-${item.type}">
+                        <i class="bi ${item.icon} small"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="small text-dark fw-semibold">${item.msg}</div>
+                    <div class="text-muted" style="font-size: 0.78rem;">${item.time}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    Chart.defaults.color = '#6b7280';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // Destroy old charts if refreshing
+    if (disasterChartInstance) disasterChartInstance.destroy();
+    if (zoneChartInstance) zoneChartInstance.destroy();
+
+    // Weekly Alerts Chart
+    if (data.timeline) {
+        disasterChartInstance = new Chart(document.getElementById('disasterChart'), {
+            type: 'line',
+            data: {
+                labels: data.timeline.labels,
+                datasets: [{
+                    label: 'Alerts',
+                    data: data.timeline.data,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2, fill: true, tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    // Zone Comparison Chart
+    if (data.zone_comparison) {
+        zoneChartInstance = new Chart(document.getElementById('zoneChart'), {
+            type: 'bar',
+            data: {
+                labels: data.zone_comparison.labels,
+                datasets: [
+                    {
+                        label: 'Risk Score',
+                        data: data.zone_comparison.risk,
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Population (x1000)',
+                        data: data.zone_comparison.population,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 16 } } },
+                scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+            }
+        });
+    }
+}
+
+// Auto-refresh every 5 seconds
+loadDashboard();
+setInterval(loadDashboard, 5000);
+</script>
+{% endblock %}

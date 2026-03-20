@@ -1,0 +1,354 @@
+/*
+=======================================================
+  AI DISASTER RESPONSE — THEME SYSTEM
+  Canonical dark/light tokens + component overrides
+=======================================================
+*/
+
+/* ── 1. GLOBAL TOKENS ──────────────────────────────── */
+:root {
+    --bg-dark:       #0B0F1A;
+    --bg-light:      #F9FAFB;
+    --card-dark:     #111827;
+    --card-light:    #FFFFFF;
+    --primary:       #3B82F6;
+    --primary-dark:  #2563EB;
+    --danger:        #EF4444;
+    --success:       #10B981;
+    --warning:       #F59E0B;
+    --info:          #06B6D4;
+    --text-light:    #E5E7EB;
+    --text-dark:     #111827;
+    --border-dark:   rgba(255,255,255,0.07);
+    --border-light:  #E2E8F0;
+}
+
+/* ── 2. DARK THEME ─────────────────────────────────── */
+body.dark {
+    background: var(--bg-dark);
+    color: var(--text-light);
+    --bg-main:      var(--bg-dark);
+    --bg-card:      var(--card-dark);
+    --bg-header:    #0F172A;
+    --border-color: var(--border-dark);
+    --text-primary: var(--text-light);
+    --text-secondary: #94A3B8;
+    --text-muted:   #64748B;
+}
+
+/* ── 3. LIGHT THEME ────────────────────────────────── */
+body.light {
+    background: var(--bg-light);
+    color: var(--text-dark);
+    --bg-main:      var(--bg-light);
+    --bg-card:      var(--card-light);
+    --bg-header:    #FFFFFF;
+    --border-color: var(--border-light);
+    --text-primary: var(--text-dark);
+    --text-secondary: #64748B;
+    --text-muted:   #94A3B8;
+}
+
+/* ── 4. SIDEBAR ────────────────────────────────────── */
+.sidebar {
+    width: 240px;
+    height: 100vh;
+    position: fixed;
+    top: 0; left: 0;
+    background: linear-gradient(180deg, #0B0F1A 0%, #111827 100%);
+    padding: 0 10px;
+    transition: left 0.3s ease, box-shadow 0.3s ease;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Shimmer accent line at top */
+.sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3B82F6, #06B6D4, #8B5CF6, #3B82F6);
+    background-size: 200% 100%;
+    animation: shimmerLine 3s linear infinite;
+}
+@keyframes shimmerLine {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Sidebar Items */
+.sidebar-item {
+    padding: 11px 16px;
+    border-radius: 10px;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.25s ease, color 0.25s ease,
+                transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    border-left: 2px solid transparent;
+    margin: 2px 0;
+}
+
+.sidebar-item i { font-size: 1rem; flex-shrink: 0; transition: transform 0.25s ease; }
+
+.sidebar-item:hover {
+    background: rgba(59, 130, 246, 0.12);
+    color: #FFFFFF;
+    transform: translateX(4px);
+    border-left-color: rgba(59,130,246,0.4);
+}
+.sidebar-item:hover i { transform: scale(1.15); }
+
+.sidebar-item.active {
+    background: linear-gradient(90deg, #3B82F6, #2563EB);
+    color: #FFFFFF;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.45), inset 0 0 16px rgba(255,255,255,0.05);
+    border-left-color: transparent;
+    font-weight: 600;
+}
+.sidebar-item.active i { transform: scale(1.1); }
+
+/* nav-item mirrors sidebar-item (base.html uses both class names) */
+.nav-item {
+    padding: 11px 16px;
+    border-radius: 10px;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.25s ease, color 0.25s ease,
+                transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    border-left: 2px solid transparent;
+    margin: 2px 0;
+}
+.nav-item i { font-size: 1rem; flex-shrink: 0; transition: transform 0.25s ease; }
+.nav-item:hover {
+    background: rgba(59,130,246,0.12);
+    color: #FFFFFF;
+    transform: translateX(4px);
+    border-left-color: rgba(59,130,246,0.4);
+}
+.nav-item.active {
+    background: linear-gradient(90deg, #3B82F6, #2563EB);
+    color: #FFFFFF;
+    box-shadow: 0 0 20px rgba(59,130,246,0.45), inset 0 0 16px rgba(255,255,255,0.05);
+    border-left-color: transparent;
+    font-weight: 600;
+}
+
+/* ── 5. CARDS ──────────────────────────────────────── */
+.card-modern {
+    border-radius: 16px;
+    padding: 20px;
+    background: var(--card-dark);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1),
+                box-shadow 0.3s ease;
+}
+.card-modern:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.4);
+}
+
+/* stat-card and panel-card also get lift hover */
+.stat-card:hover {
+    transform: translateY(-6px) scale(1.01) !important;
+    box-shadow: 0 20px 48px rgba(0,0,0,0.15) !important;
+}
+
+/* ── 6. BUTTONS ────────────────────────────────────── */
+.btn-custom {
+    background: linear-gradient(90deg, #3B82F6, #2563EB);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.btn-custom:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(59,130,246,0.45);
+}
+
+/* Left-to-right shimmer ripple on hover */
+.btn-custom::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: rgba(255,255,255,0.18);
+    transition: left 0.4s ease;
+    pointer-events: none;
+}
+.btn-custom:hover::after { left: 100%; }
+
+/* Danger variant */
+.btn-custom.danger {
+    background: linear-gradient(90deg, #EF4444, #DC2626);
+}
+.btn-custom.danger:hover {
+    box-shadow: 0 8px 24px rgba(239,68,68,0.45);
+}
+
+/* ── 7. ALERT PULSE ────────────────────────────────── */
+.alert-pulse,
+.alert-danger-pulse {
+    animation: alertPulse 1.5s ease infinite;
+}
+@keyframes alertPulse {
+    0%   { box-shadow: 0 0 0    rgba(239, 68, 68, 0.7); }
+    50%  { box-shadow: 0 0 24px rgba(239, 68, 68, 1.0); }
+    100% { box-shadow: 0 0 0    rgba(239, 68, 68, 0.7); }
+}
+
+/* HIGH RISK BANNER blink */
+.high-risk-blink {
+    animation: riskBlink 2s ease infinite;
+}
+@keyframes riskBlink {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.7; }
+}
+
+/* ── 8. MAP MARKER PULSE ───────────────────────────── */
+.marker-pulse {
+    width: 14px;
+    height: 14px;
+    background: #EF4444;
+    border-radius: 50%;
+    position: relative;
+    display: inline-block;
+}
+.marker-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #EF4444;
+    animation: markerPing 1.5s ease infinite;
+}
+@keyframes markerPing {
+    0%   { transform: scale(1);   opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Leaflet map round container */
+.leaflet-container {
+    border-radius: 12px !important;
+}
+
+/* ── 9. PAGE FADE-IN ───────────────────────────────── */
+.fade-in {
+    animation: thFadeIn 0.6s ease-in-out forwards;
+    opacity: 0;
+}
+@keyframes thFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── 10. NOTIFICATION BELL SHAKE ───────────────────── */
+.bell { animation: none; }
+.bell.active {
+    animation: bellShakeAnim 0.6s ease forwards;
+}
+@keyframes bellShakeAnim {
+    0%   { transform: rotate(0); }
+    25%  { transform: rotate(12deg); }
+    50%  { transform: rotate(-12deg); }
+    75%  { transform: rotate(10deg); }
+    100% { transform: rotate(0); }
+}
+
+/* ── 11. LOGIN CARD FLOAT ──────────────────────────── */
+.login-card {
+    animation: cardFloat 3s ease-in-out infinite !important;
+}
+@keyframes cardFloat {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(-8px); }
+    100% { transform: translateY(0); }
+}
+
+/* Override float when user is interacting */
+.login-card:focus-within {
+    animation-play-state: paused !important;
+}
+
+/* ── 12. MOBILE RESPONSIVE ─────────────────────────── */
+@media (max-width: 768px) {
+    .sidebar {
+        left: -252px;
+        box-shadow: none;
+    }
+    .sidebar.active,
+    .sidebar.mobile-open {
+        left: 0;
+        box-shadow: 0 0 0 100vw rgba(0,0,0,0.45),
+                    4px 0 32px rgba(0,0,0,0.5);
+    }
+
+    /* Larger touch targets */
+    .sidebar-item, .nav-item { padding: 13px 16px; font-size: 0.95rem; }
+    .btn-custom { padding: 13px 18px; font-size: 0.95rem; }
+
+    /* Reduce card padding */
+    .stat-card, .panel-card { padding: 16px 18px; }
+}
+
+/* ── 13. DARK OVERRIDES (body.dark) ────────────────── */
+body.dark .stat-card,
+body.dark .panel-card         { background: var(--bg-card); border-color: var(--border-color); }
+body.dark .top-header         { background: var(--bg-header); border-color: var(--border-color); }
+body.dark .form-control,
+body.dark .form-select        { background: rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); color:#F1F5F9; }
+body.dark .form-control:focus,
+body.dark .form-select:focus  { background: rgba(59,130,246,0.08); border-color: #3B82F6; }
+body.dark .table              { color: #F1F5F9; }
+body.dark .table td,
+body.dark .table th           { border-color: var(--border-color); }
+body.dark .bg-light           { background: rgba(255,255,255,0.04) !important; }
+body.dark .text-dark          { color: #F1F5F9 !important; }
+body.dark .text-muted         { color: #64748B !important; }
+body.dark .dropdown-menu      { background: #1A2235; border-color: rgba(255,255,255,0.08); }
+body.dark .dropdown-item      { color: #F1F5F9; }
+body.dark .dropdown-item:hover{ background: rgba(255,255,255,0.06); }
+body.dark .panel-header       { border-color: var(--border-color); }
+body.dark .bg-danger-subtle   { background: rgba(239,68,68,0.15) !important;  color: #F87171 !important; }
+body.dark .bg-warning-subtle  { background: rgba(245,158,11,0.15) !important; color: #FCD34D !important; }
+body.dark .bg-success-subtle  { background: rgba(16,185,129,0.15) !important; color: #34D399 !important; }
+body.dark .bg-primary-subtle  { background: rgba(59,130,246,0.15) !important; color: #93C5FD !important; }
+body.dark .bg-info-subtle     { background: rgba(6,182,212,0.15)  !important; color: #67E8F9 !important; }
+body.dark .alert-info         { background: rgba(6,182,212,0.1);  border-color: rgba(6,182,212,0.3);  color:#67E8F9; }
+body.dark .alert-success      { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color:#34D399; }
+body.dark .alert-warning      { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color:#FCD34D; }
+body.dark .alert-danger       { background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.3);  color:#F87171; }
+body.dark .input-group-text   { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color:#F1F5F9; }
+body.dark .progress           { background: rgba(255,255,255,0.08); }
+body.dark h1,body.dark h2,body.dark h3,body.dark h4,body.dark h5,body.dark h6 { color: #F1F5F9; }

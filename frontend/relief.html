@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}Operations - AI Disaster Response{% endblock %}
+{% block page_title %}Operations Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="row g-4">
+
+        <!-- Left: Relief Priority -->
+        <div class="col-12 col-xl-4">
+            <div class="panel-card mb-4">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-list-ol"></i> Priority List</h5>
+                    <button class="btn btn-sm btn-primary" id="loadPriority">Refresh</button>
+                </div>
+                <div id="priorityList">
+                    <div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>
+                </div>
+            </div>
+
+            <!-- Resource Tracker -->
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-truck"></i> Resource Status</h5>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span><i class="bi bi-water text-primary me-2"></i>Boats</span>
+                        <span class="badge bg-success">3 Active</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span><i class="bi bi-hospital text-danger me-2"></i>Ambulances</span>
+                        <span class="badge bg-warning text-dark">2 Deployed</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span><i class="bi bi-people text-success me-2"></i>Rescue Teams</span>
+                        <span class="badge bg-primary">4 Teams</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                        <span><i class="bi bi-helicopter text-secondary me-2"></i>Air Units</span>
+                        <span class="badge bg-secondary">1 Patrol</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Victim Report Form -->
+        <div class="col-12 col-xl-8">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="panel-title"><i class="bi bi-person-lines-fill"></i> Report a Victim / Emergency</h5>
+                    <button class="btn btn-sm btn-outline-primary" id="geolocateBtn">
+                        <i class="bi bi-geo-alt me-1"></i> Use My Location
+                    </button>
+                </div>
+
+                <!-- Map Click to Select Location -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-muted text-uppercase">📍 Click map to select location</label>
+                    <div id="reportMap" style="height: 220px; border-radius: 8px; border: 2px dashed #d1d5db;"></div>
+                    <div class="mt-1 text-muted small" id="coordDisplay">No location selected. Click the map or use "Use My Location".</div>
+                </div>
+
+                <form id="reportForm">
+                    <!-- Hidden coord fields -->
+                    <input type="hidden" id="reportLat" name="lat">
+                    <input type="hidden" id="reportLng" name="lng">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Victim's Name</label>
+                            <input type="text" class="form-control" id="victimName" placeholder="Full name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Zone / Area</label>
+                            <select class="form-select" id="victimZone" required>
+                                <option value="">-- Select Zone --</option>
+                                <option value="Zone A">Zone A</option>
+                                <option value="Zone B">Zone B</option>
+                                <option value="Zone D">Zone D</option>
+                                <option value="Zone E">Zone E</option>
+                                <option value="Zone G">Zone G (Critical)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Urgency Level</label>
+                            <select class="form-select" id="urgencyLevel" required>
+                                <option value="Low">🟢 Low — Needs basic help</option>
+                                <option value="Medium">🟡 Medium — Needs evacuation</option>
+                                <option value="High">🔴 High — Life threatening</option>
+                                <option value="Critical">⚫ Critical — Immediate rescue</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Number of People</label>
+                            <input type="number" class="form-control" id="victimCount" min="1" value="1" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="victimDesc" rows="2" placeholder="Describe the situation briefly..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">📷 Upload Photo (Optional)</label>
+                            <input type="file" class="form-control" id="victimPhoto" accept="image/*" capture="environment">
+                            <div class="form-text">Photo will help assess the situation remotely.</div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold" id="reportBtn">
+                                <i class="bi bi-send me-2"></i> SUBMIT EMERGENCY REPORT
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Success message -->
+                <div id="reportSuccess" class="alert alert-success mt-3 d-none fade-in">
+                    <i class="bi bi-check-circle me-2"></i> <strong>Report submitted!</strong> Rescue teams have been notified.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Init map
+const reportMap = L.map('reportMap').setView([12.97, 77.6], 10);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO', subdomains: 'abcd'
+}).addTo(reportMap);
+
+let reportMarker = null;
+
+// Map click to pick location
+reportMap.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    placeMarker(lat, lng);
+});
+
+function placeMarker(lat, lng) {
+    if (reportMarker) reportMarker.remove();
+    reportMarker = L.marker([lat, lng]).addTo(reportMap)
+        .bindPopup('<strong>Selected Location</strong>').openPopup();
+    document.getElementById('reportLat').value = lat.toFixed(6);
+    document.getElementById('reportLng').value = lng.toFixed(6);
+    document.getElementById('coordDisplay').innerHTML = 
+        `<i class="bi bi-geo-fill text-success me-1"></i> Location: <strong>Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}</strong>`;
+}
+
+// Geolocation button
+document.getElementById('geolocateBtn').addEventListener('click', () => {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+    }
+    const btn = document.getElementById('geolocateBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Locating...';
+    btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const { latitude, longitude } = pos.coords;
+            placeMarker(latitude, longitude);
+            reportMap.setView([latitude, longitude], 14);
+            btn.innerHTML = '<i class="bi bi-geo-alt me-1"></i> Use My Location';
+            btn.disabled = false;
+        },
+        () => {
+            alert('Could not get your location. Please click on the map instead.');
+            btn.innerHTML = '<i class="bi bi-geo-alt me-1"></i> Use My Location';
+            btn.disabled = false;
+        }
+    );
+});
+
+// Load Priority List
+async function loadPriorityList() {
+    const el = document.getElementById('priorityList');
+    const data = await fetch('/api/relief-priority').then(r => r.json()).catch(() => null);
+    if (!data || !data.priorities) {
+        el.innerHTML = '<div class="text-danger small p-3">Failed to load priorities.</div>';
+        return;
+    }
+    el.innerHTML = data.priorities.map((p, i) => {
+        const urgencyColor = p.urgency === 'High' || p.urgency === 'Critical' ? 'danger' : 
+                             p.urgency === 'Medium' ? 'warning' : 'success';
+        return `
+        <div class="d-flex align-items-start p-3 border-bottom priority-item" style="cursor:default">
+            <div class="me-3 fw-bold text-muted" style="min-width:24px;">${i + 1}.</div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold text-dark">${p.zone || p.name}</div>
+                <div class="text-muted small">Pop: ${p.population?.toLocaleString() || 'N/A'} &bull; Risk: ${p.risk_score || p.base_risk}%</div>
+            </div>
+            <span class="badge bg-${urgencyColor}-subtle text-${urgencyColor} fw-semibold">${p.urgency || 'Medium'}</span>
+        </div>`;
+    }).join('');
+}
+
+document.getElementById('loadPriority').addEventListener('click', loadPriorityList);
+loadPriorityList();
+
+// Submit Report
+document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('reportBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> SUBMITTING...';
+    btn.disabled = true;
+
+    await new Promise(r => setTimeout(r, 1200)); // Simulate submission delay
+
+    document.getElementById('reportSuccess').classList.remove('d-none');
+    document.getElementById('reportForm').reset();
+    document.getElementById('coordDisplay').textContent = 'No location selected.';
+    if (reportMarker) { reportMarker.remove(); reportMarker = null; }
+
+    btn.innerHTML = '<i class="bi bi-send me-2"></i> SUBMIT EMERGENCY REPORT';
+    btn.disabled = false;
+
+    setTimeout(() => document.getElementById('reportSuccess').classList.add('d-none'), 5000);
+});
+</script>
+{% endblock %}

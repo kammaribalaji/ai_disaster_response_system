@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety Dashboard — AI Disaster Response</title>
+    <meta name="description" content="Public safety dashboard for AI Disaster Response System. Check your risk level, find shelters, and report emergencies.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <style>
+        :root {
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --primary: #3b82f6;
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); min-height: 100vh; }
+
+        /* Header */
+        .pub-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .pub-header .brand { font-size: 1.1rem; font-weight: 700; display:flex; align-items:center; gap:10px; }
+        .pub-header .brand i { color: #60a5fa; }
+
+        /* Risk Banner */
+        .risk-banner {
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .risk-banner.high { background: linear-gradient(135deg, #dc2626, #7f1d1d); }
+        .risk-banner.medium { background: linear-gradient(135deg, #d97706, #78350f); }
+        .risk-banner.low { background: linear-gradient(135deg, #059669, #064e3b); }
+        .risk-banner::after { content:''; position:absolute; right:-30px; top:-30px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,0.08); }
+
+        /* Risk Ring */
+        .risk-ring {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+        .risk-ring .risk-pct { font-size: 1.4rem; font-weight: 800; color: white; line-height: 1; }
+        .risk-ring .risk-label { font-size: 0.6rem; color: rgba(255,255,255,0.8); font-weight: 600; }
+
+        /* Cards */
+        .pub-card { background: var(--surface); border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .pub-card h5 { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; }
+        .pub-card .card-icon { font-size: 1.2rem; margin-right: 8px; }
+
+        /* Shelter Cards */
+        .shelter-item { border-radius: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; margin-bottom: 10px; display:flex; align-items:center; gap:12px; }
+        .shelter-item:hover { background: #f8fafc; }
+        .shelter-icon { width: 40px; height: 40px; border-radius: 10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+
+        /* Alert Items */
+        .alert-item { border-radius: 10px; padding: 12px; margin-bottom: 8px; border-left: 4px solid; }
+        .alert-item.danger { background: #fff1f2; border-color: #ef4444; }
+        .alert-item.warning { background: #fefce8; border-color: #f59e0b; }
+        .alert-item.info { background: #eff6ff; border-color: #3b82f6; }
+
+        /* Safe Route */
+        .route-step { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f1f5f9; }
+        .route-step:last-child { border-bottom: none; }
+        .step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:0.75rem; font-weight:700; flex-shrink:0; }
+
+        /* AI Chat */
+        .chat-container { border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .chat-inner { height: 220px; overflow-y: auto; padding: 12px; display:flex; flex-direction:column; gap:8px; background:#f8fafc; }
+        .chat-bubble { max-width:85%; padding:10px 14px; border-radius:14px; font-size:0.88rem; line-height:1.4; }
+        .chat-bubble.user { background:#3b82f6; color:white; align-self:flex-end; border-bottom-right-radius:4px; }
+        .chat-bubble.bot { background:white; color:#1e293b; align-self:flex-start; border:1px solid #e2e8f0; border-bottom-left-radius:4px; }
+        .chat-footer { background:white; border-top:1px solid #e2e8f0; padding:8px; display:flex; gap:8px; }
+
+        /* Quick Questions */
+        .quick-q { background: #eff6ff; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; color: #3b82f6; cursor: pointer; border: 1px solid #bfdbfe; white-space: nowrap; }
+        .quick-q:hover { background: #dbeafe; }
+
+        /* Pulsing danger indicator */
+        @keyframes pulse-ring { 0%{transform:scale(1);opacity:1} 100%{transform:scale(2.5);opacity:0} }
+        .pulse-wrap { position:relative; display:inline-block; }
+        .pulse-wrap::before { content:''; position:absolute; inset:0; border-radius:50%; background:rgba(239,68,68,0.4); animation: pulse-ring 2s infinite; }
+
+        /* Toast */
+        .pub-toast { position:fixed; top:20px; right:20px; z-index:9999; border-radius:10px; padding:12px 18px; font-size:0.88rem; font-weight:600; color:white; box-shadow:0 6px 24px rgba(0,0,0,0.2); }
+        
+        /* Nav tabs */
+        .pub-tabs { display:flex; gap:4px; background:#f1f5f9; border-radius:10px; padding:4px; margin-bottom:16px; }
+        .pub-tab { flex:1; text-align:center; padding:7px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; color:var(--muted); border:none; background:none; }
+        .pub-tab.active { background:white; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+
+        /* Am I Safe button */
+        .safe-check-btn { border-radius:50px; padding:14px 32px; font-size:1rem; font-weight:700; border:none; width:100%; }
+    </style>
+</head>
+<body>
+
+<!-- ── PUBLIC HEADER ──────────────────────────────────────────── -->
+<header class="pub-header">
+    <div class="brand">
+        <i class="bi bi-shield-check fs-4"></i>
+        <div>
+            <div>Disaster Safe</div>
+            <div style="font-size:0.7rem; font-weight:400; opacity:0.7;">AI-Powered Emergency Dashboard</div>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div id="locationBadge" class="d-flex align-items-center gap-2" style="font-size:0.82rem; opacity:0.9;">
+            <i class="bi bi-geo-alt"></i>
+            <span id="locationText">Detecting location...</span>
+        </div>
+        <span class="badge" style="background:rgba(255,255,255,0.15); font-size:0.75rem; padding:6px 12px;">
+            <span style="color:#4ade80">●</span> System Active
+        </span>
+        <a href="/" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </a>
+    </div>
+</header>
+
+<main class="container py-4 px-3" style="max-width:960px;">
+
+    <!-- ── RISK BANNER ────────────────────────────────────────────── -->
+    <div class="risk-banner high" id="riskBanner">
+        <div class="pulse-wrap"><div class="risk-ring"><span class="risk-pct" id="riskPct">82%</span><span class="risk-label">RISK</span></div></div>
+        <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="mb-0 fw-bold" id="riskLevelText">⚠️ HIGH RISK ZONE</h4>
+            </div>
+            <div style="font-size:0.9rem; opacity:0.9;" id="riskDescription">Severe flooding detected in your area. Evacuation recommended immediately.</div>
+            <div class="d-flex gap-3 mt-2 flex-wrap" style="font-size:0.8rem; opacity:0.8;">
+                <span><i class="bi bi-cloud-rain me-1"></i>Rainfall: 148mm</span>
+                <span><i class="bi bi-wind me-1"></i>Wind: 62 km/h</span>
+                <span><i class="bi bi-water me-1"></i>River: +5.2m</span>
+                <span><i class="bi bi-thermometer me-1"></i>Temp: 28°C</span>
+            </div>
+        </div>
+        <button class="btn btn-light fw-bold align-self-start" onclick="checkMySafety()">
+            <i class="bi bi-question-circle me-2"></i>Am I Safe?
+        </button>
+    </div>
+
+    <div class="row g-3">
+        <!-- ── LEFT COLUMN ────────────────────────────────────────── -->
+        <div class="col-12 col-md-6">
+
+            <!-- Alert Notifications -->
+            <div class="pub-card">
+                <h5><i class="card-icon bi bi-bell-fill text-danger"></i>🚨 Active Alerts</h5>
+                <div id="alertsList">
+                    <div class="alert-item danger">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong style="font-size:0.88rem;">Flash Flood Warning — Zone G</strong>
+                            <span class="badge bg-danger" style="font-size:0.65rem;">CRITICAL</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#64748b;">16:05 · Water level 5.2m above normal · Evacuate immediately</div>
+                    </div>
+                    <div class="alert-item warning">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong style="font-size:0.88rem;">Heavy Rain Warning — Zone D</strong>
+                            <span class="badge bg-warning text-dark" style="font-size:0.65rem;">HIGH</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#64748b;">15:48 · 80% risk · Avoid Zone D roads</div>
+                    </div>
+                    <div class="alert-item info">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong style="font-size:0.88rem;">Rescue Teams Deployed</strong>
+                            <span class="badge bg-primary" style="font-size:0.65rem;">INFO</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#64748b;">15:30 · 3 rescue units active in Zone G & D</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nearby Shelters -->
+            <div class="pub-card">
+                <h5><i class="card-icon bi bi-house-heart-fill text-success"></i>Nearest Safe Shelters</h5>
+                <div>
+                    <div class="shelter-item">
+                        <div class="shelter-icon" style="background:#d1fae5;"><i class="bi bi-geo-alt-fill text-success"></i></div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">North Stadium</div>
+                            <div class="text-muted" style="font-size:0.78rem;">4.8 km · Capacity 1500</div>
+                            <div class="progress mt-1" style="height:4px;"><div class="progress-bar bg-success" style="width:30%"></div></div>
+                            <div style="font-size:0.72rem; color:#64748b;">450/1500 — ✅ Space Available</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success" onclick="showRouteToShelter('stadium')">Route →</button>
+                    </div>
+                    <div class="shelter-item">
+                        <div class="shelter-icon" style="background:#dbeafe;"><i class="bi bi-geo-alt-fill text-primary"></i></div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">Central High School</div>
+                            <div class="text-muted" style="font-size:0.78rem;">1.2 km · Capacity 500</div>
+                            <div class="progress mt-1" style="height:4px;"><div class="progress-bar bg-warning" style="width:64%"></div></div>
+                            <div style="font-size:0.72rem; color:#64748b;">320/500 — ⚡ Filling fast</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showRouteToShelter('highschool')">Route →</button>
+                    </div>
+                    <div class="shelter-item">
+                        <div class="shelter-icon" style="background:#fee2e2;"><i class="bi bi-geo-alt-fill text-danger"></i></div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold small">Community Hall B</div>
+                            <div class="text-muted" style="font-size:0.78rem;">2.3 km · Capacity 200</div>
+                            <div class="progress mt-1" style="height:4px;"><div class="progress-bar bg-danger" style="width:95%"></div></div>
+                            <div style="font-size:0.72rem; color:#ef4444;">190/200 — ⛔ Almost Full</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" disabled>Full</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Problem -->
+            <div class="pub-card">
+                <h5><i class="card-icon bi bi-megaphone-fill text-danger"></i>Report an Emergency</h5>
+                <div class="d-flex flex-column gap-2">
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <input type="text" class="form-control form-control-sm" id="reportLocation" placeholder="📍 Your location (street / area)">
+                        </div>
+                        <div class="col-4">
+                            <select class="form-select form-select-sm" id="reportSeverity">
+                                <option value="urgent">🔴 Urgent</option>
+                                <option value="medium">🟡 Medium</option>
+                                <option value="low">🟢 Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <textarea class="form-control form-control-sm" id="reportDesc" rows="2" placeholder="Describe the emergency... (e.g. 'Family trapped, water rising fast')"></textarea>
+                    <div>
+                        <label class="form-label small fw-semibold mb-1">📷 Upload Image (optional)</label>
+                        <input type="file" class="form-control form-control-sm" id="reportImage" accept="image/*" onchange="previewReport(this)">
+                    </div>
+                    <div id="reportImgPreview" class="d-none">
+                        <img id="reportImgEl" src="" class="img-fluid rounded" style="max-height:80px;">
+                    </div>
+                    <button class="btn btn-danger fw-bold py-2" onclick="submitEmergencyReport()">
+                        <i class="bi bi-send me-2"></i>SEND EMERGENCY REPORT
+                    </button>
+                    <div class="text-muted text-center small"><i class="bi bi-telephone me-1"></i>Emergency Helpline: <strong>1800-DISASTER</strong></div>
+                    <div id="reportSuccess" class="alert alert-success small py-2 d-none text-center">✅ Emergency report submitted! Rescue teams notified.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT COLUMN ───────────────────────────────────────── -->
+        <div class="col-12 col-md-6">
+
+            <!-- AI Chat Assistant -->
+            <div class="pub-card p-0">
+                <div style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);padding:14px 18px;border-radius:14px 14px 0 0;color:white;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-robot fs-5"></i>
+                        <div>
+                            <div class="fw-bold" style="font-size:0.95rem;">AI Safety Assistant</div>
+                            <div style="font-size:0.73rem; opacity:0.8;">Ask me anything about safety</div>
+                        </div>
+                        <span class="ms-auto badge" style="background:rgba(255,255,255,0.2); font-size:0.7rem; padding:4px 8px;">🟢 Online</span>
+                    </div>
+                </div>
+                <div class="chat-container" style="border-radius:0 0 14px 14px; border:none;">
+                    <div class="chat-inner" id="pubChatBody">
+                        <div class="chat-bubble bot">
+                            👋 Hi! I'm your AI safety assistant. Ask me:<br>
+                            <span style="color:#64748b; font-size:0.82rem;">• "Am I safe?" • "Where to go?" • "Nearest shelter?" • "Evacuation route?"</span>
+                        </div>
+                    </div>
+                    <div class="chat-footer">
+                        <input type="text" class="form-control form-control-sm border-0 bg-light" id="pubChatInput" placeholder="Ask a question..." style="border-radius:20px; padding:8px 14px;">
+                        <button class="btn btn-primary btn-sm rounded-circle" style="width:36px;height:36px;flex-shrink:0;" onclick="sendPublicChat()">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Quick questions -->
+                <div class="d-flex gap-2 flex-wrap p-3 pt-2" style="border-top:1px solid #f1f5f9;">
+                    <button class="quick-q" onclick="askQuick('Am I safe?')">Am I safe?</button>
+                    <button class="quick-q" onclick="askQuick('Where should I go?')">Where to go?</button>
+                    <button class="quick-q" onclick="askQuick('Nearest shelter')">Shelter</button>
+                    <button class="quick-q" onclick="askQuick('Evacuation route')">Evacuate</button>
+                </div>
+            </div>
+
+            <!-- Safe Route Map -->
+            <div class="pub-card">
+                <h5><i class="card-icon bi bi-map-fill text-primary"></i>Area Safety Map</h5>
+                <div id="routeInfo" class="alert alert-success py-2 small mb-2 d-none" style="border-radius:8px;">
+                    <strong>✅ Safe Route:</strong> <span id="routeDesc">—</span> · <strong><span id="routeEta">—</span></strong>
+                </div>
+                <div id="publicMap" style="height:260px; border-radius:10px;"></div>
+                <div class="d-flex gap-2 mt-2 flex-wrap">
+                    <span style="font-size:0.75rem;"><span class="me-1" style="color:#ef4444;">●</span>Danger Zone</span>
+                    <span style="font-size:0.75rem;"><span class="me-1" style="color:#10b981;">●</span>Shelter</span>
+                    <span style="font-size:0.75rem;"><span class="me-1" style="color:#3b82f6;">◀</span>Safe Route</span>
+                    <span class="ms-auto" style="font-size:0.75rem; color:#64748b;"><i class="bi bi-geo-alt-fill me-1 text-primary"></i>You are here</span>
+                </div>
+            </div>
+
+            <!-- Safety Tips -->
+            <div class="pub-card">
+                <h5><i class="card-icon bi bi-shield-fill-check text-success"></i>Safety Tips</h5>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="badge bg-success p-1 mt-1" style="font-size:0.7rem;">✓</span>
+                        <span class="small">Move to <strong>higher ground</strong> immediately if Zone G or D</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="badge bg-success p-1 mt-1" style="font-size:0.7rem;">✓</span>
+                        <span class="small">Head to <strong>North Stadium</strong> — most space available</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="badge bg-warning text-dark p-1 mt-1" style="font-size:0.7rem;">!</span>
+                        <span class="small"><strong>Do not drive</strong> through flooded roads</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="badge bg-danger p-1 mt-1" style="font-size:0.7rem;">✗</span>
+                        <span class="small"><strong>Do NOT return home</strong> until official all-clear</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="badge bg-primary p-1 mt-1" style="font-size:0.7rem;">📞</span>
+                        <span class="small">Keep <strong>emergency contacts</strong> and phone fully charged</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+/* ── MAP ────────────────────────────────────────────────────── */
+const map = L.map('publicMap').setView([12.95, 77.61], 11);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO', subdomains: 'abcd'
+}).addTo(map);
+
+const zones = [
+    {name:'Zone G', lat:12.9716, lng:77.5946, risk:90, color:'#ef4444'},
+    {name:'Zone D', lat:12.9352, lng:77.6245, risk:80, color:'#f59e0b'},
+    {name:'Zone B', lat:12.9141, lng:77.6308, risk:50, color:'#f59e0b'},
+    {name:'Zone A', lat:13.0827, lng:80.2707, risk:10, color:'#10b981'},
+];
+zones.forEach(z => {
+    L.circleMarker([z.lat, z.lng], {radius:14, fillColor:z.color, color:z.color, weight:2, fillOpacity:0.4})
+     .bindPopup(`<b>${z.name}</b><br>Risk: <b style="color:${z.color}">${z.risk}%</b>`).addTo(map);
+});
+
+const shelters = [
+    {name:'North Stadium', lat:13.085, lng:80.275, info:'450/1500 spaces'},
+    {name:'Central High School', lat:12.970, lng:77.590, info:'320/500 spaces'},
+];
+shelters.forEach(s => {
+    L.circleMarker([s.lat, s.lng], {radius:10, fillColor:'#10b981', color:'#059669', weight:2, fillOpacity:0.9})
+     .bindPopup(`🏠 <b>${s.name}</b><br>${s.info}`).addTo(map);
+});
+
+// User location marker
+let userMarker = null;
+let routeLayer = null;
+
+/* ── GEOLOCATION ─────────────────────────────────────────────── */
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const {latitude, longitude} = pos.coords;
+            document.getElementById('locationText').textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            userMarker = L.circleMarker([latitude, longitude], {
+                radius:10, fillColor:'#3b82f6', color:'#1d4ed8', weight:3, fillOpacity:0.9
+            }).bindPopup('<b>📍 You are here</b>').addTo(map);
+            map.setView([latitude, longitude], 12);
+        },
+        () => { document.getElementById('locationText').textContent = 'Zone G Region (simulated)'; }
+    );
+} else {
+    document.getElementById('locationText').textContent = 'Zone G Region';
+}
+
+/* ── SHOW ROUTE TO SHELTER ─────────────────────────────────── */
+function showRouteToShelter(type) {
+    if (routeLayer) map.removeLayer(routeLayer);
+    const origin = [12.9716, 77.5946]; // User simulated position
+    let dest, info, eta;
+    if (type === 'stadium') {
+        dest = [13.085, 80.275]; info = 'Zone G → Zone C → National Hwy → North Stadium'; eta = '22 min';
+    } else {
+        dest = [12.970, 77.590]; info = 'Local road → Central High School'; eta = '14 min';
+    }
+    const mid = [(origin[0]+dest[0])/2 + 0.005, (origin[1]+dest[1])/2 + 0.003];
+    routeLayer = L.polyline([origin, mid, dest], {color:'#3b82f6', weight:4, dashArray:'8,5', opacity:0.85}).addTo(map);
+    map.fitBounds(routeLayer.getBounds(), {padding:[30,30]});
+    document.getElementById('routeInfo').classList.remove('d-none');
+    document.getElementById('routeDesc').textContent = info;
+    document.getElementById('routeEta').textContent = eta;
+}
+
+/* ── AM I SAFE CHECK ─────────────────────────────────────────── */
+function checkMySafety() {
+    const msgs = [
+        '⚠️ Based on your location, you are in a HIGH RISK zone. Flood waters rising. Please evacuate to North Stadium immediately via the safe route.',
+        '🔴 Your area has 82% flood risk. Rescue teams are nearby. Move to Central High School via Zone C immediately.',
+        '🟠 You are in a MODERATE risk zone. Monitor alerts. Have emergency bag ready. North Stadium shelter is open.'
+    ];
+    sendPublicChatMsg('Am I safe?');
+    setTimeout(() => addBotMsg(msgs[0]), 800);
+}
+
+/* ── AI CHAT ─────────────────────────────────────────────────── */
+const chatRules = [
+    {k:['safe','am i safe','danger'], r:'⚠️ Based on current data, <b>Zone G (90%) and Zone D (80%)</b> are at HIGH risk. If you are in these zones, evacuate immediately to <b>North Stadium</b>.'},
+    {k:['shelter','where to go','where should i','refuge'], r:'🏠 Best shelter: <b>North Stadium</b> (4.8km, 1050 spaces free). <b>Central High School</b> (1.2km, 180 spaces). Tap "Route →" on any shelter to see the path.'},
+    {k:['evacuat','escape','leave','route'], r:'🗺️ Safest evacuation route: <b>Zone G → Zone C → Main Hwy → North Stadium</b>. Avoid Zone D roads — heavily flooded. Estimated time: 22-35 min by vehicle.'},
+    {k:['flood','water','flooding'], r:'🌊 Flood alert: River level is <b>5.2m above normal</b> in Zone G. Zone D water rising at 0.3m/hour. Do NOT cross flooded roads.'},
+    {k:['team','rescue','help','who','send help'], r:'🚑 3 rescue teams deployed: <b>Team Alpha (boats)</b> in Zone G, <b>Team Bravo (medical)</b> heading to Zone D, <b>Air Unit 1</b> on patrol. Call 1800-DISASTER for immediate help.'},
+    {k:['rain','storm','weather','wind'], r:'🌧️ Current: Rainfall <b>148mm/24h</b> (danger threshold exceeded), Wind <b>62km/h</b>. Storm conditions expected for next <b>12 hours</b>.'},
+    {k:['supply','food','water','medicine'], r:'📦 Relief supplies delivered to Zone A and Zone B. Zone G and D prioritized next. Reach North Stadium shelter for immediate aid.'},
+    {k:['report','emergency','sos'], r:'🆘 Use the <b>Report an Emergency</b> form below to submit your location and situation. Rescue teams will be notified within minutes.'},
+    {k:['hospital','medical','doctor','injured'], r:'🏥 City Hospital (5km, accessible via North Bypass) is open. For critical cases, call rescue team directly at <b>1800-DISASTER</b>.'},
+];
+
+function sendPublicChatMsg(msg) {
+    const body = document.getElementById('pubChatBody');
+    body.innerHTML += `<div class="chat-bubble user">${msg}</div>`;
+    body.scrollTop = body.scrollHeight;
+}
+
+function addBotMsg(html) {
+    const body = document.getElementById('pubChatBody');
+    body.innerHTML += `<div class="chat-bubble bot">${html}</div>`;
+    body.scrollTop = body.scrollHeight;
+}
+
+async function sendPublicChat() {
+    const input = document.getElementById('pubChatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    sendPublicChatMsg(msg);
+    input.value = '';
+    const body = document.getElementById('pubChatBody');
+    const tid = 'typing_' + Date.now();
+    body.innerHTML += `<div class="chat-bubble bot text-muted" id="${tid}"><span class="spinner-border spinner-border-sm me-1"></span>...</div>`;
+    body.scrollTop = body.scrollHeight;
+    await new Promise(r => setTimeout(r, 700));
+    document.getElementById(tid)?.remove();
+    const lq = msg.toLowerCase();
+    let reply = null;
+    for (const rule of chatRules) {
+        if (rule.k.some(k => lq.includes(k))) { reply = rule.r; break; }
+    }
+    try {
+        const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg})});
+        const data = await res.json();
+        if (data.reply && !reply) reply = data.reply;
+    } catch(e) {}
+    addBotMsg(reply || "I'm not sure. Ask about: <b>risk zones</b>, <b>shelters</b>, <b>evacuation</b>, <b>rescue teams</b>, or <b>weather</b>.");
+}
+
+function askQuick(q) { document.getElementById('pubChatInput').value = q; sendPublicChat(); }
+
+document.getElementById('pubChatInput').addEventListener('keydown', e => { if(e.key==='Enter') sendPublicChat(); });
+
+/* ── REPORT FORM ─────────────────────────────────────────────── */
+function previewReport(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        document.getElementById('reportImgEl').src = ev.target.result;
+        document.getElementById('reportImgPreview').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function submitEmergencyReport() {
+    const location = document.getElementById('reportLocation').value.trim();
+    const desc = document.getElementById('reportDesc').value.trim();
+    const severity = document.getElementById('reportSeverity').value;
+    if (!location || !desc) { 
+        alert('Please fill in your location and describe the emergency.'); 
+        return; 
+    }
+    let imageData = null;
+    const fi = document.getElementById('reportImage');
+    if (fi.files[0]) {
+        const reader = new FileReader();
+        imageData = await new Promise(resolve => { reader.onload = e => resolve(e.target.result); reader.readAsDataURL(fi.files[0]); });
+    }
+    try {
+        await fetch('/api/report', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({name:'Public User', location, description:desc, severity, image:imageData, zone:'Zone G', time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})})
+        });
+    } catch(e) {}
+    document.getElementById('reportSuccess').classList.remove('d-none');
+    document.getElementById('reportLocation').value = '';
+    document.getElementById('reportDesc').value = '';
+    document.getElementById('reportImgPreview').classList.add('d-none');
+    setTimeout(() => document.getElementById('reportSuccess').classList.add('d-none'), 5000);
+    showToast('🆘 Emergency report sent! Help is coming.', '#ef4444');
+}
+
+/* ── TOAST ─────────────────────────────────────────────────── */
+function showToast(msg, bg='#3b82f6') {
+    const id = 't'+Date.now();
+    document.body.insertAdjacentHTML('beforeend', `<div id="${id}" class="pub-toast" style="background:${bg};">${msg}</div>`);
+    setTimeout(() => document.getElementById(id)?.remove(), 4000);
+}
+</script>
+</body>
+</html>

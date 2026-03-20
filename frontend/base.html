@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Disaster Dashboard{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet" href="/assets/style.css">
+    <!-- Theme System (dark/light tokens + components) -->
+    <link rel="stylesheet" href="/assets/css/theme.css">
+    
+    <style>
+        /* CHAT WIDGET */
+        #chatWidget {
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            width: 340px;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        #chatWidget.open { display: flex; }
+        .chat-header {
+            background: var(--primary);
+            color: white;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .chat-body {
+            height: 300px;
+            background: #f8fafc;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+        .chat-msg.user {
+            background: var(--primary);
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg.bot {
+            background: #fff;
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+        .chat-footer {
+            background: #fff;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            gap: 8px;
+        }
+        .chat-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 9999;
+        }
+        .chat-fab:hover { background: #2563eb; transform: scale(1.08); }
+        
+        /* NOTIFICATION BADGE */
+        .notif-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            background: var(--danger);
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .activity-item:hover { background: #f8fafc; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- Left Sidebar -->
+    <nav class="sidebar" id="mainSidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-shield-check fs-4 me-2 text-primary"></i>
+            <span class="sidebar-brand">Disaster OS</span>
+        </div>
+        <!-- Role Badge -->
+        <div class="px-3 pb-2 pt-1">
+            <div id="roleBadge" class="d-flex align-items-center gap-2 py-2 px-3 rounded-3" style="background:rgba(59,130,246,0.1);">
+                <span id="sidebarRoleIcon" style="font-size:1.2rem;">👨‍💼</span>
+                <div>
+                    <div id="sidebarRoleName" style="font-size:0.8rem; font-weight:700; color:#1e293b; line-height:1.2;">Administrator</div>
+                    <div id="sidebarRoleTag" style="font-size:0.65rem; color:#64748b;">Full Control</div>
+                </div>
+            </div>
+        </div>
+        <!-- Dynamic Navigation (populated by JS) -->
+        <div class="px-2 mt-1" id="sidebarNav"></div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Mobile menu button (hidden on desktop) -->
+                <button class="btn border-0 mobile-menu-btn p-1" id="mobileMenuBtn" style="display:none; background:transparent;" onclick="document.querySelector('.sidebar').classList.toggle('mobile-open')">
+                    <i class="bi bi-list fs-4 text-secondary"></i>
+                </button>
+                <h1 class="header-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="header-status">
+                    <span class="status-dot"></span> System Active
+                </div>
+                
+                <!-- Dark Mode Toggle -->
+                <button class="btn border-0 p-2" id="darkModeToggle" title="Toggle Dark Mode" style="background:transparent;">
+                    <i class="bi bi-moon fs-5 text-secondary" id="darkModeIcon"></i>
+                </button>
+                
+                <!-- Notification Bell -->
+                <div class="dropdown">
+                    <button class="btn border-0 position-relative p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background:transparent;">
+                        <i class="bi bi-bell fs-5 text-secondary"></i>
+                        <span class="notif-badge">3</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0" style="width: 300px; border-radius: 12px; overflow: hidden;">
+                        <li class="px-3 py-2 bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-bell me-2"></i>Notifications</span>
+                            <span class="badge bg-white text-primary">3 new</span>
+                        </li>
+                        <li class="d-flex align-items-center p-3 border-bottom notif-item" style="cursor:pointer">
+                            <div class="me-3 bg-danger-subtle text-danger p-2 rounded-circle"><i class="bi bi-exclamation-octagon"></i></div>
+                            <div><div class="small fw-semibold text-dark">Zone G: HIGH RISK</div><div class="text-muted" style="font-size:0.78rem">Rainfall exceeded limit by 35%</div></div>
+                        </li>
+                        <li class="d-flex align-items-center p-3 border-bottom notif-item" style="cursor:pointer">
+                            <div class="me-3 bg-primary-subtle text-primary p-2 rounded-circle"><i class="bi bi-truck"></i></div>
+                            <div><div class="small fw-semibold text-dark">Team Alpha deployed</div><div class="text-muted" style="font-size:0.78rem">Rescue boats dispatched to Zone D</div></div>
+                        </li>
+                        <li class="d-flex align-items-center p-3 notif-item" style="cursor:pointer">
+                            <div class="me-3 bg-success-subtle text-success p-2 rounded-circle"><i class="bi bi-box2-heart"></i></div>
+                            <div><div class="small fw-semibold text-dark">Relief delivered to Zone B</div><div class="text-muted" style="font-size:0.78rem">450 packages delivered successfully</div></div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn btn-light border-0 dropdown-toggle header-user" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background:transparent;">
+                        <i class="bi bi-person-circle fs-5 me-1"></i><span id="headerUserName">Admin</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><span class="dropdown-item-text text-muted small" id="headerRoleLabel">Administrator</span></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item text-danger" href="/" onclick="sessionStorage.clear()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="content-wrapper fade-in">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<!-- AI Chat FAB -->
+<button class="chat-fab" id="chatFab" title="AI Assistant">
+    <i class="bi bi-robot"></i>
+</button>
+
+<!-- Chat Widget -->
+<div id="chatWidget">
+    <div class="chat-header">
+        <span><i class="bi bi-robot me-2"></i>AI Disaster Assistant</span>
+        <button onclick="toggleChat()" class="btn btn-sm btn-link text-white p-0"><i class="bi bi-x-lg fs-5"></i></button>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <div class="chat-msg bot">
+            👋 Hi! I'm your AI assistant. Ask me about:<br>
+            • Risky zones<br>
+            • Nearest shelter<br>
+            • Evacuation routes<br>
+            • Rescue teams
+        </div>
+    </div>
+    <div class="chat-footer">
+        <input type="text" class="form-control form-control-sm border-0 bg-light" id="chatInput" placeholder="Ask a question..." style="border-radius: 20px; padding: 8px 14px;">
+        <button class="btn btn-primary btn-sm rounded-circle" style="width:36px;height:36px;flex-shrink:0;" id="chatSend">
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Core Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Leaflet Heat Plugin (REQUIRED for heatmap layer) -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<!-- Custom App Logic -->
+<script src="/assets/app.js"></script>
+
+<!-- Chat Widget Logic -->
+<script>
+function toggleChat() {
+    const widget = document.getElementById('chatWidget');
+    widget.classList.toggle('open');
+}
+
+document.getElementById('chatFab').addEventListener('click', toggleChat);
+
+async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const body = document.getElementById('chatBody');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    // User message
+    body.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+    input.value = '';
+    body.scrollTop = body.scrollHeight;
+
+    // Typing indicator
+    const typingId = 'typing_' + Date.now();
+    body.innerHTML += `<div class="chat-msg bot text-muted" id="${typingId}"><span class="spinner-border spinner-border-sm me-1"></span> Thinking...</div>`;
+    body.scrollTop = body.scrollHeight;
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ message: msg })
+        });
+        const data = await res.json();
+        document.getElementById(typingId).remove();
+        body.innerHTML += `<div class="chat-msg bot">${data.reply}</div>`;
+    } catch (e) {
+        document.getElementById(typingId).remove();
+        body.innerHTML += `<div class="chat-msg bot text-danger">Sorry, I couldn't connect. Please try again.</div>`;
+    }
+    body.scrollTop = body.scrollHeight;
+}
+
+document.getElementById('chatSend').addEventListener('click', sendChat);
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendChat();
+});
+</script>
+
+<!-- Dark Mode + Mobile Sidebar JS -->
+<script>
+// Dark Mode
+/* ── Dark / Light Theme Toggle ───────────────────────────────── */
+// Apply saved theme on load
+(function applyTheme() {
+    const saved = localStorage.getItem('theme') || 'light';
+    document.body.classList.add(saved === 'dark' ? 'dark' : 'light');
+    // keep old dark-mode class in sync for style.css compat
+    if (saved === 'dark') document.body.classList.add('dark-mode');
+    const icon = document.getElementById('darkModeIcon');
+    if (icon) icon.className = saved === 'dark' ? 'bi bi-sun fs-5 text-warning' : 'bi bi-moon fs-5 text-secondary';
+})();
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark');
+    document.body.classList.toggle('light', !isDark);
+    document.body.classList.toggle('dark-mode', isDark); // compat
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const icon = document.getElementById('darkModeIcon');
+    if (icon) icon.className = isDark ? 'bi bi-sun fs-5 text-warning' : 'bi bi-moon fs-5 text-secondary';
+    // Dispatch event so app.js can re-theme charts
+    document.dispatchEvent(new Event('darkModeChange'));
+}
+
+const toggle = document.getElementById('darkModeToggle');
+toggle.addEventListener('click', toggleTheme);
+
+// Mobile sidebar: close when clicking overlay
+document.addEventListener('click', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    if (sidebar && sidebar.classList.contains('mobile-open') && !sidebar.contains(e.target) && e.target !== menuBtn) {
+        sidebar.classList.remove('mobile-open');
+    }
+});
+</script>
+
+<!-- ── ROLE-BASED SIDEBAR JS ─────────────────────────────────── -->
+<script>
+(function buildRoleSidebar() {
+    const path = window.location.pathname;
+    const role = sessionStorage.getItem('userRole') || 'admin';
+
+    /* ── Sidebar configs ────────────────────────────────────── */
+    const SIDEBARS = {
+        admin: {
+            icon: '👨‍💼',
+            name: 'Administrator',
+            tag: 'Full Control Access',
+            badgeBg: 'rgba(59,130,246,0.12)',
+            badgeColor: '#1d4ed8',
+            headerName: 'Admin',
+            headerLabel: 'Administrator • Full Control',
+            items: [
+                { icon: 'bi-grid-1x2',       label: 'Dashboard',          href: '/admin-dashboard' },
+                { icon: 'bi-graph-up-arrow',  label: 'AI Risk Check',      href: '/prediction' },
+                { icon: 'bi-sliders',         label: 'Simulation',         href: '/simulation' },
+                { icon: 'bi-clipboard-data',  label: 'Reports',            href: '/relief' },
+                { icon: 'bi-box2-heart',      label: 'Resource Mgmt',      href: '/relief' },
+            ]
+        },
+        rescue: {
+            icon: '🚑',
+            name: 'Rescue Team',
+            tag: 'Action & Field Access',
+            badgeBg: 'rgba(239,68,68,0.1)',
+            badgeColor: '#b91c1c',
+            headerName: 'Rescue',
+            headerLabel: 'Rescue Team • Field Access',
+            items: [
+                { icon: 'bi-truck',              label: 'Rescue HQ',        href: '/rescue-dashboard' },
+                { icon: 'bi-map',                label: 'Find Route',        href: '/routes' },
+                { icon: 'bi-box2-heart',         label: 'Operations',        href: '/relief' },
+                { icon: 'bi-lightning-charge',   label: 'Live Alerts',       href: '/rescue-dashboard' },
+                { icon: 'bi-camera-fill',        label: 'Upload Report',     href: '/rescue-dashboard' },
+            ]
+        },
+        public: {
+            icon: '👥',
+            name: 'Public User',
+            tag: 'Safety & Reporting',
+            badgeBg: 'rgba(16,185,129,0.1)',
+            badgeColor: '#065f46',
+            headerName: 'Public',
+            headerLabel: 'Public User • Safety Access',
+            items: [
+                { icon: 'bi-shield-check',       label: 'Safety Dashboard',  href: '/public-dashboard' },
+                { icon: 'bi-activity',           label: 'Check Risk',         href: '/public-dashboard' },
+                { icon: 'bi-house-heart-fill',   label: 'Nearby Shelters',    href: '/public-dashboard' },
+                { icon: 'bi-megaphone-fill',     label: 'Report Issue',       href: '/public-dashboard' },
+            ]
+        }
+    };
+
+    const cfg = SIDEBARS[role] || SIDEBARS.admin;
+
+    /* ── Role badge ─────────────────────────────────────────── */
+    const badge = document.getElementById('roleBadge');
+    if (badge) {
+        badge.style.background = cfg.badgeBg;
+        document.getElementById('sidebarRoleIcon').textContent = cfg.icon;
+        const nameEl = document.getElementById('sidebarRoleName');
+        nameEl.textContent = cfg.name;
+        nameEl.style.color = cfg.badgeColor;
+        document.getElementById('sidebarRoleTag').textContent = cfg.tag;
+    }
+
+    /* ── Build nav items ────────────────────────────────────── */
+    const nav = document.getElementById('sidebarNav');
+    if (nav) {
+        nav.innerHTML = cfg.items.map(item => {
+            const isActive = (path === item.href ||
+                (item.href === '/admin-dashboard' && path === '/dashboard'));
+            // Use sidebar-item (theme.css) + nav-item (style.css) for full styling
+            return `<a href="${item.href}" class="sidebar-item nav-item${isActive ? ' active' : ''}">
+                <i class="bi ${item.icon}"></i> ${item.label}
+            </a>`;
+        }).join('');
+    }
+
+    /* ── Header user dropdown ───────────────────────────────── */
+    const headerName = document.getElementById('headerUserName');
+    const headerLabel = document.getElementById('headerRoleLabel');
+    if (headerName) headerName.textContent = cfg.headerName;
+    if (headerLabel) headerLabel.textContent = cfg.headerLabel;
+
+})();
+</script>
+
+</body>
+</html>

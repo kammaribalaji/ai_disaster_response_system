@@ -1,0 +1,660 @@
+{% extends 'base.html' %}
+{% block title %}Rescue Team HQ — AI Disaster Response{% endblock %}
+{% block page_title %}🚑 Rescue Team HQ{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+<!-- ── Live Emergency Alert Bar ─────────────────────────────────────── -->
+<div id="emergencyAlertBar" class="alert alert-danger border-0 shadow mb-3 d-flex align-items-center gap-3 py-3 px-4 position-relative" role="alert" style="border-radius:12px; border-left:5px solid #dc3545 !important;">
+    <span class="fs-3 pulse-icon">🚨</span>
+    <div class="flex-grow-1">
+        <strong class="fs-6">ACTIVE EMERGENCY — Zone G (HIGH RISK 90%)</strong>
+        <div class="small mt-1 opacity-75">Multiple civilian reports received · Flood waters rising · Immediate response required</div>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0">
+        <button class="btn btn-sm btn-light fw-semibold" onclick="acknowledgeAlert(this)">✓ Acknowledge</button>
+        <button class="btn btn-danger btn-sm fw-bold" id="sosBtnTop" onclick="triggerSOS()">
+            <i class="bi bi-broadcast me-1"></i>SOS
+        </button>
+    </div>
+</div>
+
+<!-- ── Main Grid ──────────────────────────────────────────────────────── -->
+<div class="row g-4">
+
+    <!-- ── LEFT COLUMN ───────────────────────────────────────────────── -->
+    <div class="col-12 col-xl-4 d-flex flex-column gap-4">
+
+        <!-- Live Alerts Feed -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-lightning-charge text-warning"></i> Live Alerts Feed</h5>
+                <span class="badge bg-danger blink-badge">LIVE</span>
+            </div>
+            <div id="alertsFeed" style="max-height:200px; overflow-y:auto;" class="d-flex flex-column gap-2">
+                <div class="d-flex align-items-start gap-2 p-2 bg-danger-subtle rounded border-start border-danger border-3">
+                    <i class="bi bi-exclamation-octagon text-danger mt-1"></i>
+                    <div><div class="small fw-bold text-dark">Zone G: Flash Flood CRITICAL</div><div class="text-muted" style="font-size:0.77rem">16:05 — Civilians trapped. Water level +5.2m</div></div>
+                </div>
+                <div class="d-flex align-items-start gap-2 p-2 bg-warning-subtle rounded border-start border-warning border-3">
+                    <i class="bi bi-cloud-rain text-warning mt-1"></i>
+                    <div><div class="small fw-bold text-dark">Zone D: Heavy Rainfall Warning</div><div class="text-muted" style="font-size:0.77rem">15:48 — 80% risk. Roads flooded</div></div>
+                </div>
+                <div class="d-flex align-items-start gap-2 p-2 bg-primary-subtle rounded border-start border-primary border-3">
+                    <i class="bi bi-truck text-primary mt-1"></i>
+                    <div><div class="small fw-bold text-dark">Team Alpha — Zone G ETA 8 min</div><div class="text-muted" style="font-size:0.77rem">15:30 — En route via safe corridor B</div></div>
+                </div>
+                <div class="d-flex align-items-start gap-2 p-2 bg-light rounded border-start border-secondary border-2">
+                    <i class="bi bi-people text-secondary mt-1"></i>
+                    <div><div class="small fw-bold text-dark">40 civilians evacuated — Zone D</div><div class="text-muted" style="font-size:0.77rem">14:55 — North Stadium shelter reached</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Assignment Panel -->
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-clipboard-check"></i> My Tasks</h5>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-xs btn-outline-secondary active" onclick="filterTasks('all',this)">All</button>
+                    <button class="btn btn-xs btn-outline-danger" onclick="filterTasks('pending',this)">Pending</button>
+                    <button class="btn btn-xs btn-outline-primary" onclick="filterTasks('in progress',this)">Active</button>
+                    <button class="btn btn-xs btn-outline-success" onclick="filterTasks('completed',this)">Done</button>
+                </div>
+            </div>
+            <div id="taskList" style="max-height:320px; overflow-y:auto;" class="d-flex flex-column gap-2"></div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="panel-card">
+            <div class="panel-header"><h5 class="panel-title"><i class="bi bi-lightning"></i> Quick Actions</h5></div>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary py-2" onclick="document.getElementById('routePanel').scrollIntoView({behavior:'smooth'})">
+                    <i class="bi bi-signpost-split me-2"></i>Plan Safe Route
+                </button>
+                <button class="btn btn-warning py-2" id="mainSosBtn" onclick="triggerSOS()">
+                    <i class="bi bi-broadcast me-2"></i>Emergency SOS to Admin
+                </button>
+                <button class="btn btn-success py-2" onclick="startVoiceInput()">
+                    <i class="bi bi-mic-fill me-2"></i>Voice Report
+                </button>
+                <button class="btn btn-outline-info py-2" onclick="document.getElementById('fieldUploadPanel').scrollIntoView({behavior:'smooth'})">
+                    <i class="bi bi-camera me-2"></i>Upload Field Photos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── RIGHT COLUMN: Full Map ─────────────────────────────────────── -->
+    <div class="col-12 col-xl-8">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-map"></i> Navigation & Operational Map</h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-danger-subtle text-danger"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Danger</span>
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Shelter</span>
+                    <span class="badge bg-primary-subtle text-primary"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Team</span>
+                    <span class="badge bg-warning-subtle text-warning"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem"></i>Safe Route</span>
+                </div>
+            </div>
+
+            <!-- Route Planner Bar -->
+            <div id="routePanel" class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" id="routeFrom">
+                        <option value="">📍 From (location)</option>
+                        <option value="HQ">Team HQ</option>
+                        <option value="ZoneG">Zone G</option>
+                        <option value="ZoneD">Zone D</option>
+                        <option value="ZoneB">Zone B</option>
+                        <option value="Stadium">North Stadium</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" id="routeTo">
+                        <option value="">🏁 To (destination)</option>
+                        <option value="Stadium">North Stadium Shelter</option>
+                        <option value="HighSchool">Central High School</option>
+                        <option value="ZoneG">Zone G (Emergency)</option>
+                        <option value="ZoneD">Zone D (Emergency)</option>
+                        <option value="Hospital">City Hospital</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary btn-sm w-100" onclick="planRoute()">
+                        <i class="bi bi-signpost-split me-1"></i>Get AI Safe Route
+                    </button>
+                </div>
+            </div>
+
+            <!-- Route Info Bar (hidden by default) -->
+            <div id="routeInfo" class="alert alert-success py-2 px-3 mb-2 small d-none" style="border-radius:8px;">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span><strong>🟢 Safe Route Found:</strong> <span id="routeDescription">—</span></span>
+                    <div class="d-flex gap-3">
+                        <span><i class="bi bi-clock me-1"></i><strong id="routeTime">—</strong></span>
+                        <span><i class="bi bi-shield-check me-1"></i>Safety: <strong id="routeSafety" class="text-success">—</strong></span>
+                        <span><i class="bi bi-exclamation-triangle me-1 text-warning"></i>Avoids: <span id="routeAvoids">—</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div id="rescueMap" style="height:460px; border-radius:10px;"></div>
+
+            <!-- Team Tracking -->
+            <div class="mt-3 pt-3 border-top">
+                <div class="small text-muted fw-semibold mb-2 text-uppercase">📡 Live Team Positions</div>
+                <div class="d-flex gap-2 flex-wrap" id="teamPositions">
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2"><i class="bi bi-person-fill me-1"></i>Team Alpha — Zone G (Active)</span>
+                    <span class="badge bg-warning-subtle text-warning px-3 py-2"><i class="bi bi-person-fill me-1"></i>Team Bravo — Zone D (En Route)</span>
+                    <span class="badge bg-success-subtle text-success px-3 py-2"><i class="bi bi-person-fill me-1"></i>Air Unit 1 — Patrol (Overhead)</span>
+                    <span class="badge bg-secondary-subtle text-secondary px-3 py-2"><i class="bi bi-person-fill me-1"></i>YOU — HQ Base</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Row 2: Field Upload + Voice + Simulation ───────────────────────── -->
+<div class="row g-4 mt-1">
+
+    <!-- Field Image Upload -->
+    <div class="col-12 col-xl-4" id="fieldUploadPanel">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-camera-fill text-primary"></i> Field Image Upload</h5>
+                <span class="badge bg-info-subtle text-info">Updates Admin</span>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div>
+                    <label class="form-label small fw-semibold">📷 Select Photo Type</label>
+                    <select class="form-select form-select-sm" id="photoType">
+                        <option value="flood">Flood Conditions</option>
+                        <option value="damage">Damage Assessment</option>
+                        <option value="victim">Victim Status</option>
+                        <option value="route">Route Condition</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">🗺 Zone</label>
+                    <select class="form-select form-select-sm" id="photoZone">
+                        <option>Zone G</option>
+                        <option>Zone D</option>
+                        <option>Zone B</option>
+                        <option>Zone A</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">Upload Photo</label>
+                    <input type="file" class="form-control form-control-sm" accept="image/*" id="fieldPhoto" onchange="previewFieldPhoto(this)">
+                </div>
+                <div id="fieldPhotoPreview" class="d-none">
+                    <img id="fieldPhotoImg" src="" class="img-fluid rounded border" style="max-height:100px;" alt="Preview">
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">📝 Notes (optional)</label>
+                    <textarea class="form-control form-control-sm" id="fieldNotes" rows="2" placeholder="Describe what you see..."></textarea>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="uploadFieldPhoto()">
+                    <i class="bi bi-cloud-upload me-2"></i>Upload & Notify Admin
+                </button>
+                <div id="fieldUploadResult" class="alert alert-success small py-2 d-none">✅ Photo uploaded! Admin dashboard updated.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Input + SOS -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-mic-fill text-danger"></i> Voice Report</h5>
+                <span class="badge bg-warning-subtle text-warning">STT Active</span>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div class="text-center py-3">
+                    <button id="voiceBtn" onclick="startVoiceInput()" 
+                        class="btn btn-outline-danger rounded-circle position-relative"
+                        style="width:90px; height:90px; font-size:2rem; border-width:3px;">
+                        <i class="bi bi-mic" id="voiceIcon"></i>
+                    </button>
+                    <div class="small text-muted mt-2" id="voiceStatus">Tap to start voice report</div>
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">📋 Transcribed / Typed Report</label>
+                    <textarea class="form-control form-control-sm" id="voiceText" rows="3" placeholder="Voice input or type here...&#10;e.g. 'Zone G flood level critical, 20 civilians need evacuation'"></textarea>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <select class="form-select form-select-sm" id="voiceZone">
+                            <option>Zone G</option><option>Zone D</option><option>Zone B</option><option>Zone A</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <select class="form-select form-select-sm" id="voiceStatus2">
+                            <option value="critical">Critical</option>
+                            <option value="warning">Warning</option>
+                            <option value="update">Update</option>
+                            <option value="clear">All Clear</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="submitVoiceReport()">
+                    <i class="bi bi-send me-2"></i>Send Update to Admin
+                </button>
+                <div id="voiceResult" class="alert alert-success small py-2 d-none">✅ Report sent to admin dashboard!</div>
+
+                <!-- Emergency SOS Big Button -->
+                <div class="border-top pt-3">
+                    <div class="small text-muted fw-semibold mb-2 text-uppercase text-center">🆘 One-Click Emergency</div>
+                    <button class="btn btn-danger w-100 py-3 fw-bold fs-6" id="bigSosBtn" onclick="triggerSOS()">
+                        <i class="bi bi-broadcast me-2"></i>SEND EMERGENCY SOS
+                    </button>
+                    <div class="small text-muted text-center mt-1">Instantly alerts Admin + All Teams</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flood Simulation View -->
+    <div class="col-12 col-xl-4">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="bi bi-water text-info"></i> Flood Spread Simulation</h5>
+                <span class="badge bg-info-subtle text-info" id="simHourLabel">T+6h</span>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div class="small text-muted">🔮 AI-predicted flood spread over next 24 hours</div>
+                <!-- Time slider -->
+                <div>
+                    <label class="form-label small fw-semibold mb-1">⏱ Simulation Hour: <span id="simHourVal">+6h</span></label>
+                    <input type="range" class="form-range" id="simHourSlider" min="1" max="24" value="6" oninput="updateSimulation(this.value)">
+                </div>
+                <!-- Zone spread bars -->
+                <div id="simZones" class="d-flex flex-column gap-2">
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold text-danger">Zone G</span><span id="simG">85%</span></div>
+                        <div class="progress" style="height:8px;"><div class="progress-bar bg-danger" id="simBarG" style="width:85%"></div></div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold text-warning">Zone D</span><span id="simD">62%</span></div>
+                        <div class="progress" style="height:8px;"><div class="progress-bar bg-warning" id="simBarD" style="width:62%"></div></div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold text-info">Zone B</span><span id="simB">38%</span></div>
+                        <div class="progress" style="height:8px;"><div class="progress-bar bg-info" id="simBarB" style="width:38%"></div></div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1"><span class="fw-semibold text-success">Zone A</span><span id="simA">5%</span></div>
+                        <div class="progress" style="height:8px;"><div class="progress-bar bg-success" id="simBarA" style="width:5%"></div></div>
+                    </div>
+                </div>
+                <div class="border-top pt-3">
+                    <div class="small text-muted fw-semibold mb-2">📊 Evacuation Progress</div>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Overall evacuation</span>
+                        <span class="fw-bold text-primary" id="evacPct">67%</span>
+                    </div>
+                    <div class="progress" style="height:10px;">
+                        <div class="progress-bar bg-primary" id="evacBar" style="width:67%"></div>
+                    </div>
+                    <div class="small text-muted mt-1">Predicted peak at +18h · Act within 12 hours</div>
+                </div>
+                <div class="alert alert-warning small py-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Action required:</strong> Zone G flood will reach 95% spread within 12 hours. Evacuate Block 4 immediately.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div> <!-- /container -->
+
+<style>
+.btn-xs { font-size: 0.7rem; padding: 2px 8px; }
+.blink-badge { animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse-icon { animation: pulse 2s infinite; display:inline-block; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+.task-card { border-radius:8px; padding:12px; border-left:4px solid; cursor:pointer; transition:all 0.15s; }
+.task-card:hover { filter:brightness(0.97); }
+.task-card.critical { background:#fff1f2; border-color:#dc3545; }
+.task-card.medium { background:#fefce8; border-color:#f59e0b; }
+.task-card.low { background:#f0fdf4; border-color:#10b981; }
+.task-card.completed { background:#f8f9fa; border-color:#6c757d; opacity:0.75; }
+</style>
+
+<script>
+/* ── TASK MANAGEMENT ─────────────────────────────────────────────── */
+let allTasks = [];
+let currentFilter = 'all';
+
+async function loadTasks() {
+    try {
+        const r = await fetch('/api/tasks');
+        allTasks = await r.json();
+    } catch(e) {
+        allTasks = [
+            {id:1, title:"Evacuate Zone G — Block 4", priority:"critical", status:"Pending", assigned_at:"15:48", details:"~45 civilians. Water rising.", zone:"Zone G"},
+            {id:2, title:"Medical check at Central Shelter", priority:"medium", status:"In Progress", assigned_at:"14:30", details:"3 critical patients. Medical support needed.", zone:"Shelter"},
+            {id:3, title:"Deliver supplies — Zone B", priority:"low", status:"In Progress", assigned_at:"13:15", details:"200 packages. Food + Medical kits.", zone:"Zone B"},
+            {id:4, title:"Rescue boat deployment — Zone D", priority:"critical", status:"Pending", assigned_at:"16:30", details:"Deploy rescue boats to Main Bridge.", zone:"Zone D"},
+            {id:5, title:"Search & Rescue — Zone G East", priority:"critical", status:"Pending", assigned_at:"16:45", details:"Multiple families trapped. Coordinate Team Alpha.", zone:"Zone G"},
+            {id:6, title:"Route scouting — Northern corridor", priority:"medium", status:"Completed", assigned_at:"12:00", details:"Verified safe path through Zone C.", zone:"Zone C"},
+        ];
+    }
+    renderTasks(currentFilter);
+}
+
+function renderTasks(filter) {
+    currentFilter = filter;
+    const list = document.getElementById('taskList');
+    let tasks = allTasks;
+    if (filter !== 'all') tasks = allTasks.filter(t => t.status.toLowerCase() === filter.toLowerCase());
+
+    const pmap = {critical:'danger', medium:'warning', low:'success'};
+    const smap = {Pending:'warning', 'In Progress':'primary', Completed:'success'};
+
+    list.innerHTML = tasks.map(t => {
+        const cls = t.status === 'Completed' ? 'completed' : t.priority;
+        const pcls = pmap[t.priority] || 'secondary';
+        const scls = smap[t.status] || 'secondary';
+        return `
+        <div class="task-card ${cls}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="small fw-bold text-dark">${t.title}</span>
+                <span class="badge bg-${pcls} ms-2">${t.priority}</span>
+            </div>
+            <div class="text-muted small mb-2">${t.details}</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted" style="font-size:0.75rem"><i class="bi bi-clock me-1"></i>${t.assigned_at} · ${t.zone}</div>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary py-0 px-2" style="font-size:0.7rem" onclick="updateTaskStatus(${t.id},'In Progress')">Start</button>
+                    <button class="btn btn-outline-success py-0 px-2" style="font-size:0.7rem" onclick="updateTaskStatus(${t.id},'Completed')">Done</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('') || '<div class="text-muted text-center small py-3">No tasks in this category</div>';
+}
+
+function filterTasks(filter, btn) {
+    document.querySelectorAll('.panel-header .btn-xs').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderTasks(filter);
+}
+
+async function updateTaskStatus(id, status) {
+    try {
+        await fetch(`/api/tasks/${id}/update`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({status})
+        });
+    } catch(e) {}
+    const t = allTasks.find(x => x.id === id);
+    if(t) t.status = status;
+    renderTasks(currentFilter);
+}
+
+/* ── RESCUE MAP ─────────────────────────────────────────────────── */
+const map = L.map('rescueMap').setView([12.96, 77.61], 12);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; CARTO', subdomains: 'abcd'
+}).addTo(map);
+
+// Danger zones
+const zones = [
+    {name:'Zone G', lat:12.9716, lng:77.5946, risk:90, color:'#ef4444'},
+    {name:'Zone D', lat:12.9352, lng:77.6245, risk:80, color:'#f59e0b'},
+    {name:'Zone B', lat:12.9141, lng:77.6308, risk:50, color:'#f59e0b'},
+    {name:'Zone A', lat:13.0827, lng:80.2707, risk:10, color:'#10b981'},
+    {name:'Zone C', lat:12.9600, lng:77.6000, risk:25, color:'#10b981'},
+];
+zones.forEach(z => {
+    L.circleMarker([z.lat, z.lng], {
+        radius:16, fillColor:z.color, color:z.color, weight:2, fillOpacity:0.45
+    }).bindPopup(`<b>${z.name}</b><br>Risk: <b style="color:${z.color}">${z.risk}%</b>`).addTo(map);
+});
+
+// Shelters
+[
+    {name:'North Stadium', lat:13.085, lng:80.275, cap:'1500 · 450 occupied'},
+    {name:'Central High School', lat:12.970, lng:77.590, cap:'500 · 320 occupied'},
+].forEach(s => {
+    L.circleMarker([s.lat, s.lng], {
+        radius:12, fillColor:'#10b981', color:'#059669', weight:2, fillOpacity:0.9
+    }).bindPopup(`🏠 <b>${s.name}</b><br>${s.cap}`).addTo(map);
+});
+
+// Rescue teams
+const teamIcon = (color, label) => L.divIcon({
+    html:`<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.6rem;font-weight:bold;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${label}</div>`,
+    iconSize:[30,30], iconAnchor:[15,15], className:''
+});
+L.marker([12.968, 77.592], {icon:teamIcon('#3b82f6','Aα')}).bindPopup('<b>Team Alpha</b><br>Zone G · Active').addTo(map);
+L.marker([12.933, 77.620], {icon:teamIcon('#f59e0b','Bβ')}).bindPopup('<b>Team Bravo</b><br>Zone D · En Route').addTo(map);
+L.marker([12.975, 77.610], {icon:teamIcon('#10b981','✈')}).bindPopup('<b>Air Unit 1</b><br>Patrol · Overhead').addTo(map);
+L.marker([12.960, 77.600], {icon:teamIcon('#9333ea','YOU')}).bindPopup('<b>Your Position</b><br>HQ Base').addTo(map);
+
+/* ── ROUTE PLANNER ───────────────────────────────────────────────── */
+let routeLayer = null;
+const routeCoords = {
+    HQ:       [12.9600, 77.6000],
+    ZoneG:    [12.9716, 77.5946],
+    ZoneD:    [12.9352, 77.6245],
+    ZoneB:    [12.9141, 77.6308],
+    Stadium:  [13.0850, 80.2750],
+    HighSchool:[12.9700, 77.5900],
+    Hospital: [12.9800, 77.5960],
+};
+const routeInfo = {
+    Stadium:   { desc:'Zone HQ → Zone C → Zone A → North Stadium', time:'22 min', safety:'96%', avoids:'Zone G, Zone D' },
+    HighSchool:{ desc:'HQ → Main Rd → Central High School', time:'14 min', safety:'88%', avoids:'Flood zones' },
+    ZoneG:     { desc:'HQ → Safe Corridor B → Zone G', time:'8 min', safety:'72%', avoids:'Zone D roads' },
+    ZoneD:     { desc:'HQ → Zone C bridge → Zone D', time:'12 min', safety:'78%', avoids:'Market Street (flooded)' },
+    Hospital:  { desc:'HQ → North Bypass → City Hospital', time:'18 min', safety:'94%', avoids:'Zone G, Market Rd' },
+};
+
+function planRoute() {
+    const from = document.getElementById('routeFrom').value || 'HQ';
+    const to = document.getElementById('routeTo').value;
+    if (!to) { alert('Please select a destination'); return; }
+
+    if (routeLayer) map.removeLayer(routeLayer);
+    const fromCoord = routeCoords[from] || routeCoords.HQ;
+    const toCoord = routeCoords[to];
+
+    // Intermediate waypoints for visual variety
+    const mid1 = [(fromCoord[0] + toCoord[0])/2 + 0.004, (fromCoord[1] + toCoord[1])/2 - 0.003];
+    const mid2 = [(fromCoord[0] + toCoord[0])/2 - 0.002, (fromCoord[1] + toCoord[1])/2 + 0.005];
+    const latlngs = [fromCoord, mid1, mid2, toCoord];
+
+    routeLayer = L.polyline(latlngs, {
+        color:'#10b981', weight:5, dashArray:'10,6', opacity:0.9
+    }).addTo(map);
+    map.fitBounds(routeLayer.getBounds(), {padding:[40,40]});
+
+    const info = routeInfo[to] || { desc:'Optimal route calculated', time:'N/A', safety:'N/A', avoids:'Flooded roads' };
+    document.getElementById('routeInfo').classList.remove('d-none');
+    document.getElementById('routeDescription').textContent = info.desc;
+    document.getElementById('routeTime').textContent = info.time;
+    document.getElementById('routeSafety').textContent = info.safety;
+    document.getElementById('routeAvoids').textContent = info.avoids;
+}
+
+/* ── ALERT & SOS ─────────────────────────────────────────────────── */
+function acknowledgeAlert(btn) {
+    btn.textContent = '✓ Acknowledged';
+    btn.className = 'btn btn-sm btn-success';
+}
+
+async function triggerSOS() {
+    const sosBtn = document.getElementById('bigSosBtn') || document.getElementById('mainSosBtn');
+    if (sosBtn) { sosBtn.disabled = true; sosBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending SOS...'; }
+    try {
+        await fetch('/api/sos', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({team:'Field Team', location:'Current Position', message:'URGENT: Emergency rescue needed!'})
+        });
+    } catch(e) {}
+    setTimeout(() => {
+        if (sosBtn) {
+            sosBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>SOS SENT! Admin Notified';
+            sosBtn.className = 'btn btn-success w-100 py-3 fw-bold fs-6';
+            setTimeout(() => {
+                sosBtn.disabled = false;
+                sosBtn.innerHTML = '<i class="bi bi-broadcast me-2"></i>SEND EMERGENCY SOS';
+                sosBtn.className = 'btn btn-danger w-100 py-3 fw-bold fs-6';
+            }, 5000);
+        }
+    }, 1500);
+    // Show toast
+    showToast('🆘 SOS Sent! Admin and all teams notified.', 'danger');
+}
+
+/* ── VOICE INPUT ─────────────────────────────────────────────────── */
+let recognition = null;
+let isListening = false;
+
+function startVoiceInput() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = document.getElementById('voiceBtn');
+    const icon = document.getElementById('voiceIcon');
+    const status = document.getElementById('voiceStatus');
+
+    if (!SpeechRecognition) {
+        document.getElementById('voiceText').value = '[Browser STT not supported — type your report here]';
+        document.getElementById('voiceText').focus();
+        status.textContent = 'Type your report below';
+        return;
+    }
+
+    if (isListening) {
+        recognition.stop();
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+        isListening = true;
+        btn.className = 'btn btn-danger rounded-circle position-relative';
+        icon.className = 'bi bi-mic-fill';
+        status.textContent = '🔴 Listening... speak now';
+        btn.style.animation = 'pulse 0.8s infinite';
+    };
+    recognition.onresult = (e) => {
+        const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+        document.getElementById('voiceText').value = transcript;
+    };
+    recognition.onend = () => {
+        isListening = false;
+        btn.className = 'btn btn-outline-danger rounded-circle position-relative';
+        icon.className = 'bi bi-mic';
+        status.textContent = '✓ Voice captured — review and send';
+        btn.style.animation = '';
+    };
+    recognition.start();
+}
+
+async function submitVoiceReport() {
+    const msg = document.getElementById('voiceText').value.trim();
+    const zone = document.getElementById('voiceZone').value;
+    const status = document.getElementById('voiceStatus2').value;
+    if (!msg) { alert('Please enter or record a message'); return; }
+
+    try {
+        await fetch('/api/field-update', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({team:'Field Team', zone, message:msg, status})
+        });
+    } catch(e) {}
+    const el = document.getElementById('voiceResult');
+    el.classList.remove('d-none');
+    document.getElementById('voiceText').value = '';
+    setTimeout(() => el.classList.add('d-none'), 4000);
+    showToast('📡 Field report sent to admin!', 'success');
+}
+
+/* ── FIELD IMAGE UPLOAD ─────────────────────────────────────────── */
+function previewFieldPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        document.getElementById('fieldPhotoImg').src = ev.target.result;
+        document.getElementById('fieldPhotoPreview').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function uploadFieldPhoto() {
+    const type = document.getElementById('photoType').value;
+    const zone = document.getElementById('photoZone').value;
+    const notes = document.getElementById('fieldNotes').value;
+    const fileInput = document.getElementById('fieldPhoto');
+
+    let imageData = null;
+    if (fileInput.files[0]) {
+        const reader = new FileReader();
+        imageData = await new Promise(resolve => {
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+    }
+
+    try {
+        await fetch('/api/field-update', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({team:'Field Team', zone, message:`[${type.toUpperCase()}] ${notes}`, status:type, image:imageData})
+        });
+    } catch(e) {}
+
+    const el = document.getElementById('fieldUploadResult');
+    el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 4000);
+    showToast('📷 Field photo uploaded — admin notified!', 'info');
+}
+
+/* ── FLOOD SIMULATION ─────────────────────────────────────────────── */
+function updateSimulation(hour) {
+    hour = parseInt(hour);
+    document.getElementById('simHourVal').textContent = `+${hour}h`;
+    document.getElementById('simHourLabel').textContent = `T+${hour}h`;
+    const factor = hour / 24;
+    const gPct = Math.min(99, Math.round(60 + 35 * factor));
+    const dPct = Math.min(92, Math.round(40 + 48 * factor));
+    const bPct = Math.min(80, Math.round(20 + 56 * factor));
+    const aPct = Math.min(30, Math.round(2 + 25 * factor));
+    const evac = Math.max(20, Math.round(90 - 50 * factor));
+
+    const set = (id, bid, val, color) => {
+        document.getElementById(id).textContent = val + '%';
+        document.getElementById(bid).style.width = val + '%';
+        document.getElementById(bid).className = `progress-bar ${color}`;
+    };
+    set('simG','simBarG', gPct, gPct>80?'bg-danger':'bg-warning');
+    set('simD','simBarD', dPct, dPct>70?'bg-danger':'bg-warning');
+    set('simB','simBarB', bPct, bPct>60?'bg-warning':'bg-info');
+    set('simA','simBarA', aPct, aPct>20?'bg-warning':'bg-success');
+    document.getElementById('evacPct').textContent = evac + '%';
+    document.getElementById('evacBar').style.width = evac + '%';
+}
+
+/* ── TOAST ──────────────────────────────────────────────────────── */
+function showToast(msg, type='primary') {
+    const id = 'toast_' + Date.now();
+    const colors = {primary:'#3b82f6', success:'#10b981', danger:'#ef4444', info:'#0ea5e9', warning:'#f59e0b'};
+    const html = `<div id="${id}" style="position:fixed;top:20px;right:20px;z-index:99999;background:${colors[type]||colors.primary};color:white;padding:12px 18px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,0.2);font-size:0.9rem;font-weight:500;font-family:Inter,sans-serif;max-width:300px;">${msg}</div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    setTimeout(() => document.getElementById(id)?.remove(), 4000);
+}
+
+// Init
+loadTasks();
+</script>
+{% endblock %}
