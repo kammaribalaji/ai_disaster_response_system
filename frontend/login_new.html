@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — AI Disaster Response System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2847 100%);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated gradient background */
+        .bg-gradient {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(59,130,246,0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #0f172a 0%, #1a2847 100%);
+            animation: bgShift 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(5deg); }
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.3;
+            z-index: 0;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            width: 300px; height: 300px;
+            background: rgba(59, 130, 246, 0.4);
+            top: -100px; left: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 200px; height: 200px;
+            background: rgba(139, 92, 246, 0.3);
+            bottom: -50px; right: -50px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -30px); }
+        }
+
+        .container-login {
+            position: relative;
+            z-index: 10;
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 28px;
+            color: white;
+        }
+
+        .logo-icon i {
+            color: white;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Role Selection */
+        .roles-section {
+            margin-bottom: 30px;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .role-card {
+            position: relative;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .role-card:hover {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .role-card input[type="radio"] {
+            display: none;
+        }
+
+        .role-card input[type="radio"]:checked + .role-content {
+            color: var(--primary);
+        }
+
+        .role-card input[type="radio"]:checked ~ .role-check {
+            display: flex;
+        }
+
+        .role-card.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+        }
+
+        .role-check {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .role-check i {
+            color: white;
+        }
+
+        .role-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .role-card:hover .role-icon {
+            transform: scale(1.1);
+        }
+
+        .role-name {
+            font-size: 13px;
+            font-weight: 600;
+            display: block;
+        }
+
+        /* Remember me */
+        .remember-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-custom {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .remember-section label {
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-top: -8px;
+        }
+
+        .forgot-password a {
+            font-size: 12px;
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .signup-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .signup-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .signup-text a:hover {
+            color: #2563eb;
+        }
+
+        .error-message {
+            display: none;
+            padding: 12px 16px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            color: #fca5a5;
+            font-size: 13px;
+            margin-bottom: 20px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .login-card {
+                padding: 30px 20px;
+            }
+
+            .login-title {
+                font-size: 24px;
+            }
+
+            .roles-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .container-login {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-gradient"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Login Container -->
+    <div class="container-login">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="bi bi-shield-exclamation"></i>
+                </div>
+                <h1 class="login-title">Disaster Response</h1>
+                <p class="login-subtitle">AI-Powered Emergency Management System</p>
+            </div>
+
+            <!-- Error Message -->
+            {% if error %}
+            <div class="error-message" id="errorMessage" style="display: block;">
+                ❌ {{ error }}
+            </div>
+            {% else %}
+            <div class="error-message" id="errorMessage"></div>
+            {% endif %}
+
+            <!-- Login Form -->
+            <form id="loginForm" method="POST" action="/login">
+                <!-- Username -->
+                <div class="form-section">
+                    <label class="form-label">📧 Username or Email</label>
+                    <input type="text" class="form-input" name="username" id="username" placeholder="Enter your username" required>
+                </div>
+
+                <!-- Password -->
+                <div class="form-section">
+                    <label class="form-label">🔒 Password</label>
+                    <input type="password" class="form-input" name="password" id="password" placeholder="Enter your password" required>
+                </div>
+
+                <!-- Role Selection (FOR DEMO PURPOSES - Backend uses DB) -->
+                <div class="roles-section">
+                    <label class="form-label">👤 Select Your Role (Demo)</label>
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Try logging in with different roles to see various dashboards</p>
+                    <div class="roles-grid">
+                        <!-- Admin Role -->
+                        <label class="role-card" id="roleAdmin">
+                            <input type="radio" name="role" value="admin">
+                            <div class="role-content">
+                                <span class="role-icon">👨‍💼</span>
+                                <span class="role-name">Admin</span>
+                            </div>
+                            <div class="role-check">
+                                <i class="bi bi-check"></i>
+                            </div>
+                        </label>
+
+                        <!-- Rescue Role -->
+                        <label class="role-card" id="roleRescue">
+                            <input type="radio" name="role" value="rescue">
+                            <div class="role-content">
+                                <span class="role-icon">🚑</span>
+                                <span class="role-name">Rescue</span>
+                            </div>
+                            <div class="role-check">
+                                <i class="bi bi-check"></i>
+                            </div>
+                        </label>
+
+                        <!-- Public Role -->
+                        <label class="role-card" id="rolePublic">
+                            <input type="radio" name="role" value="public">
+                            <div class="role-content">
+                                <span class="role-icon">👤</span>
+                                <span class="role-name">Public</span>
+                            </div>
+                            <div class="role-check">
+                                <i class="bi bi-check"></i>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="remember-section">
+                    <input type="checkbox" class="checkbox-custom" name="remember" id="remember">
+                    <label for="remember">Remember me</label>
+                    <div class="forgot-password">
+                        <a href="/forgot-password">Forgot password?</a>
+                    </div>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In
+                </button>
+
+                <!-- Sign Up Text -->
+                <p class="signup-text">
+                    Don't have an account? <a href="/signup">Create one</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Add active state to role cards
+        document.querySelectorAll('input[name="role"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.querySelectorAll('.role-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                this.closest('.role-card').classList.add('active');
+            });
+        });
+
+        // Set default role
+        document.getElementById('roleAdmin').querySelector('input').checked = true;
+        document.getElementById('roleAdmin').classList.add('active');
+
+        // Error handling
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error')) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = decodeURIComponent(urlParams.get('error'));
+            errorMsg.classList.add('show');
+        }
+
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const role = document.querySelector('input[name="role"]:checked');
+            if (!role) {
+                e.preventDefault();
+                const errorMsg = document.getElementById('errorMessage');
+                errorMsg.textContent = 'Please select a role';
+                errorMsg.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>

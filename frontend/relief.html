@@ -1,221 +1,577 @@
-{% extends 'base.html' %}
+{% extends 'base_new.html' %}
 
-{% block title %}Operations - AI Disaster Response{% endblock %}
-{% block page_title %}Operations Center{% endblock %}
+{% block title %}Relief Distribution - AI Disaster Response{% endblock %}
+{% block page_title %}
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span>🏥 Relief Distribution</span>
+        <span class="badge badge-success">
+            <i class="bi bi-box2-heart"></i> Active Centers
+        </span>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .center-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+    }
+
+    .center-card:hover {
+        border-color: rgba(34, 197, 94, 0.3);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .center-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .center-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+        flex-shrink: 0;
+    }
+
+    .center-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+        margin: 0;
+    }
+
+    .center-location {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 4px 0 0;
+    }
+
+    .capacity-bar {
+        width: 100%;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 12px 0 8px;
+    }
+
+    .capacity-fill {
+        height: 100%;
+        background: var(--success);
+        border-radius: 8px;
+        transition: width 0.3s ease;
+    }
+
+    .capacity-text {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .supplies-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .supply-item {
+        text-align: center;
+    }
+
+    .supply-count {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-light);
+    }
+
+    .supply-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-top: 4px;
+    }
+
+    .stat-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--success);
+        margin: 0;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-top: 8px;
+        font-weight: 600;
+    }
+
+    .priority-high {
+        border-left: 4px solid var(--danger);
+    }
+
+    .priority-medium {
+        border-left: 4px solid var(--warning);
+    }
+
+    .priority-low {
+        border-left: 4px solid var(--success);
+    }
+
+    .map-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        height: 400px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .supplies-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="row g-4">
+<div style="max-width: 1400px; margin: 0 auto;">
+    
+    <!-- Relief Map -->
+    <h4 class="section-title" style="margin-bottom: 20px;">
+        <i class="bi bi-map"></i> Relief Centers Map
+    </h4>
+    <div class="map-container" id="reliefMap"></div>
 
-        <!-- Left: Relief Priority -->
-        <div class="col-12 col-xl-4">
-            <div class="panel-card mb-4">
-                <div class="panel-header">
-                    <h5 class="panel-title"><i class="bi bi-list-ol"></i> Priority List</h5>
-                    <button class="btn btn-sm btn-primary" id="loadPriority">Refresh</button>
+    <!-- Overview Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 30px;">
+        <div class="stat-box">
+            <p class="stat-value">6</p>
+            <p class="stat-label">Active Centers</p>
+        </div>
+        <div class="stat-box">
+            <p class="stat-value">18,450</p>
+            <p class="stat-label">Total Capacity</p>
+        </div>
+        <div class="stat-box">
+            <p class="stat-value">12,380</p>
+            <p class="stat-label">Currently Housed</p>
+        </div>
+        <div class="stat-box">
+            <p class="stat-value">67%</p>
+            <p class="stat-label">Occupancy</p>
+        </div>
+    </div>
+
+    <!-- Relief Centers -->
+    <h4 class="section-title" style="margin-bottom: 20px;">
+        <i class="bi bi-building"></i> Relief Centers Status
+    </h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
+        <!-- Central High School Shelter -->
+        <div class="center-card priority-high">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-hospital"></i>
                 </div>
-                <div id="priorityList">
-                    <div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>
+                <div>
+                    <h5 class="center-title">Central High School</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> Downtown, Hyderabad</p>
                 </div>
             </div>
 
-            <!-- Resource Tracker -->
-            <div class="panel-card">
-                <div class="panel-header">
-                    <h5 class="panel-title"><i class="bi bi-truck"></i> Resource Status</h5>
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Shelter Capacity</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 68%;"></div>
                 </div>
-                <div class="d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                        <span><i class="bi bi-water text-primary me-2"></i>Boats</span>
-                        <span class="badge bg-success">3 Active</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                        <span><i class="bi bi-hospital text-danger me-2"></i>Ambulances</span>
-                        <span class="badge bg-warning text-dark">2 Deployed</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                        <span><i class="bi bi-people text-success me-2"></i>Rescue Teams</span>
-                        <span class="badge bg-primary">4 Teams</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                        <span><i class="bi bi-helicopter text-secondary me-2"></i>Air Units</span>
-                        <span class="badge bg-secondary">1 Patrol</span>
-                    </div>
+                <div class="capacity-text">
+                    <span>680 / 1000 people</span>
+                    <span style="color: var(--success);">68%</span>
                 </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">450</div>
+                    <div class="supply-label">Food Kits</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">320</div>
+                    <div class="supply-label">Water (L)</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">85</div>
+                    <div class="supply-label">Med Kits</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--success);">✓ Operational</span> | 
+                <strong>Last Updated:</strong> 2 mins ago
             </div>
         </div>
 
-        <!-- Right: Victim Report Form -->
-        <div class="col-12 col-xl-8">
-            <div class="panel-card">
-                <div class="panel-header">
-                    <h5 class="panel-title"><i class="bi bi-person-lines-fill"></i> Report a Victim / Emergency</h5>
-                    <button class="btn btn-sm btn-outline-primary" id="geolocateBtn">
-                        <i class="bi bi-geo-alt me-1"></i> Use My Location
-                    </button>
+        <!-- Community Hall Refuge -->
+        <div class="center-card priority-medium">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-box2-heart"></i>
                 </div>
-
-                <!-- Map Click to Select Location -->
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small text-muted text-uppercase">📍 Click map to select location</label>
-                    <div id="reportMap" style="height: 220px; border-radius: 8px; border: 2px dashed #d1d5db;"></div>
-                    <div class="mt-1 text-muted small" id="coordDisplay">No location selected. Click the map or use "Use My Location".</div>
+                <div>
+                    <h5 class="center-title">Community Hall</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> East Ward, Hyderabad</p>
                 </div>
+            </div>
 
-                <form id="reportForm">
-                    <!-- Hidden coord fields -->
-                    <input type="hidden" id="reportLat" name="lat">
-                    <input type="hidden" id="reportLng" name="lng">
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Victim's Name</label>
-                            <input type="text" class="form-control" id="victimName" placeholder="Full name" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Zone / Area</label>
-                            <select class="form-select" id="victimZone" required>
-                                <option value="">-- Select Zone --</option>
-                                <option value="Zone A">Zone A</option>
-                                <option value="Zone B">Zone B</option>
-                                <option value="Zone D">Zone D</option>
-                                <option value="Zone E">Zone E</option>
-                                <option value="Zone G">Zone G (Critical)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Urgency Level</label>
-                            <select class="form-select" id="urgencyLevel" required>
-                                <option value="Low">🟢 Low — Needs basic help</option>
-                                <option value="Medium">🟡 Medium — Needs evacuation</option>
-                                <option value="High">🔴 High — Life threatening</option>
-                                <option value="Critical">⚫ Critical — Immediate rescue</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Number of People</label>
-                            <input type="number" class="form-control" id="victimCount" min="1" value="1" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="victimDesc" rows="2" placeholder="Describe the situation briefly..."></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">📷 Upload Photo (Optional)</label>
-                            <input type="file" class="form-control" id="victimPhoto" accept="image/*" capture="environment">
-                            <div class="form-text">Photo will help assess the situation remotely.</div>
-                        </div>
-                        <div class="col-12 mt-2">
-                            <button type="submit" class="btn btn-danger w-100 py-2 fw-semibold" id="reportBtn">
-                                <i class="bi bi-send me-2"></i> SUBMIT EMERGENCY REPORT
-                            </button>
-                        </div>
-                    </div>
-                </form>
-
-                <!-- Success message -->
-                <div id="reportSuccess" class="alert alert-success mt-3 d-none fade-in">
-                    <i class="bi bi-check-circle me-2"></i> <strong>Report submitted!</strong> Rescue teams have been notified.
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Shelter Capacity</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 92%;"></div>
                 </div>
+                <div class="capacity-text">
+                    <span>920 / 1000 people</span>
+                    <span style="color: var(--warning);">92%</span>
+                </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">380</div>
+                    <div class="supply-label">Food Kits</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">520</div>
+                    <div class="supply-label">Water (L)</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">120</div>
+                    <div class="supply-label">Med Kits</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--warning);">⚠ High Occupancy</span> | 
+                <strong>Last Updated:</strong> 1 min ago
+            </div>
+        </div>
+
+        <!-- North Stadium Safe Zone -->
+        <div class="center-card priority-low">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <h5 class="center-title">North Stadium</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> North City, Hyderabad</p>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Shelter Capacity</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 31%;"></div>
+                </div>
+                <div class="capacity-text">
+                    <span>450 / 1500 people</span>
+                    <span style="color: var(--success);">31%</span>
+                </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">820</div>
+                    <div class="supply-label">Food Kits</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">1200</div>
+                    <div class="supply-label">Water (L)</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">250</div>
+                    <div class="supply-label">Med Kits</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--success);">✓ Available Space</span> | 
+                <strong>Last Updated:</strong> 3 mins ago
+            </div>
+        </div>
+
+        <!-- City Hospital Medical Center -->
+        <div class="center-card priority-high">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-hospital"></i>
+                </div>
+                <div>
+                    <h5 class="center-title">City Hospital</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> Medical District, Hyderabad</p>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Medical Units</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 78%;"></div>
+                </div>
+                <div class="capacity-text">
+                    <span>780 / 1000 beds</span>
+                    <span style="color: var(--danger);">78%</span>
+                </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">156</div>
+                    <div class="supply-label">Doctors</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">340</div>
+                    <div class="supply-label">Nurses</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">2500</div>
+                    <div class="supply-label">Med Units</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--danger);">🔴 Critical</span> | 
+                <strong>Last Updated:</strong> Just now
+            </div>
+        </div>
+
+        <!-- Relief Supply Warehouse -->
+        <div class="center-card priority-medium">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-box2"></i>
+                </div>
+                <div>
+                    <h5 class="center-title">Supply Warehouse</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> Industrial Zone, Hyderabad</p>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Storage Utilization</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 45%;"></div>
+                </div>
+                <div class="capacity-text">
+                    <span>45% capacity used</span>
+                    <span style="color: var(--success);">Adequate stock</span>
+                </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">5200</div>
+                    <div class="supply-label">Food Units</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">8400</div>
+                    <div class="supply-label">Water (L)</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">1800</div>
+                    <div class="supply-label">Med Kits</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--success);">✓ Well-Stocked</span> | 
+                <strong>Last Updated:</strong> 5 mins ago
+            </div>
+        </div>
+
+        <!-- Emergency Services Staging -->
+        <div class="center-card priority-low">
+            <div class="center-header">
+                <div class="center-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div>
+                    <h5 class="center-title">Emergency Services</h5>
+                    <p class="center-location"><i class="bi bi-geo-alt"></i> Central Command, Hyderabad</p>
+                </div>
+            </div>
+
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Personnel on Duty</div>
+                <div class="capacity-bar">
+                    <div class="capacity-fill" style="width: 85%;"></div>
+                </div>
+                <div class="capacity-text">
+                    <span>425 / 500 personnel</span>
+                    <span style="color: var(--success);">85%</span>
+                </div>
+            </div>
+
+            <div class="supplies-grid">
+                <div class="supply-item">
+                    <div class="supply-count">45</div>
+                    <div class="supply-label">Vehicles</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">120</div>
+                    <div class="supply-label">Rescue Ops</div>
+                </div>
+                <div class="supply-item">
+                    <div class="supply-count">89</div>
+                    <div class="supply-label">Teams</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                <strong>Status:</strong> <span style="color: var(--success);">✓ Operational</span> | 
+                <strong>Last Updated:</strong> 1 min ago
             </div>
         </div>
     </div>
+
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script>
-// Init map
-const reportMap = L.map('reportMap').setView([12.97, 77.6], 10);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CARTO', subdomains: 'abcd'
-}).addTo(reportMap);
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Relief Centers Map
+    const reliefMap = L.map('reliefMap').setView([17.3850, 78.4867], 11);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(reliefMap);
 
-let reportMarker = null;
-
-// Map click to pick location
-reportMap.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    placeMarker(lat, lng);
-});
-
-function placeMarker(lat, lng) {
-    if (reportMarker) reportMarker.remove();
-    reportMarker = L.marker([lat, lng]).addTo(reportMap)
-        .bindPopup('<strong>Selected Location</strong>').openPopup();
-    document.getElementById('reportLat').value = lat.toFixed(6);
-    document.getElementById('reportLng').value = lng.toFixed(6);
-    document.getElementById('coordDisplay').innerHTML = 
-        `<i class="bi bi-geo-fill text-success me-1"></i> Location: <strong>Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}</strong>`;
-}
-
-// Geolocation button
-document.getElementById('geolocateBtn').addEventListener('click', () => {
-    if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser.');
-        return;
-    }
-    const btn = document.getElementById('geolocateBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Locating...';
-    btn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            const { latitude, longitude } = pos.coords;
-            placeMarker(latitude, longitude);
-            reportMap.setView([latitude, longitude], 14);
-            btn.innerHTML = '<i class="bi bi-geo-alt me-1"></i> Use My Location';
-            btn.disabled = false;
+    // Relief centers data
+    const reliefCenters = [
+        {
+            name: 'Central High School',
+            lat: 17.3950,
+            lng: 78.4750,
+            capacity: '1000',
+            occupancy: '680',
+            status: 'Operational',
+            color: 'green'
         },
-        () => {
-            alert('Could not get your location. Please click on the map instead.');
-            btn.innerHTML = '<i class="bi bi-geo-alt me-1"></i> Use My Location';
-            btn.disabled = false;
+        {
+            name: 'Community Hall',
+            lat: 17.3850,
+            lng: 78.5050,
+            capacity: '1000',
+            occupancy: '920',
+            status: 'High Occupancy',
+            color: 'orange'
+        },
+        {
+            name: 'North Stadium',
+            lat: 17.4250,
+            lng: 78.4867,
+            capacity: '1500',
+            occupancy: '450',
+            status: 'Available Space',
+            color: 'green'
+        },
+        {
+            name: 'City Hospital',
+            lat: 17.3700,
+            lng: 78.5000,
+            capacity: '1000 beds',
+            occupancy: '780',
+            status: 'Critical',
+            color: 'red'
+        },
+        {
+            name: 'Supply Warehouse',
+            lat: 17.3500,
+            lng: 78.4600,
+            capacity: 'Storage',
+            occupancy: '45%',
+            status: 'Well-Stocked',
+            color: 'blue'
+        },
+        {
+            name: 'Emergency Services',
+            lat: 17.4000,
+            lng: 78.5200,
+            capacity: '500',
+            occupancy: '425',
+            status: 'Operational',
+            color: 'green'
         }
-    );
-});
+    ];
 
-// Load Priority List
-async function loadPriorityList() {
-    const el = document.getElementById('priorityList');
-    const data = await fetch('/api/relief-priority').then(r => r.json()).catch(() => null);
-    if (!data || !data.priorities) {
-        el.innerHTML = '<div class="text-danger small p-3">Failed to load priorities.</div>';
-        return;
-    }
-    el.innerHTML = data.priorities.map((p, i) => {
-        const urgencyColor = p.urgency === 'High' || p.urgency === 'Critical' ? 'danger' : 
-                             p.urgency === 'Medium' ? 'warning' : 'success';
-        return `
-        <div class="d-flex align-items-start p-3 border-bottom priority-item" style="cursor:default">
-            <div class="me-3 fw-bold text-muted" style="min-width:24px;">${i + 1}.</div>
-            <div class="flex-grow-1">
-                <div class="fw-semibold text-dark">${p.zone || p.name}</div>
-                <div class="text-muted small">Pop: ${p.population?.toLocaleString() || 'N/A'} &bull; Risk: ${p.risk_score || p.base_risk}%</div>
+    // Color mapping for markers
+    const colorEmojis = {
+        'green': '🟢',
+        'orange': '🟡',
+        'red': '🔴',
+        'blue': '🔵'
+    };
+
+    // Add markers for each relief center
+    reliefCenters.forEach(center => {
+        const marker = L.marker([center.lat, center.lng]).addTo(reliefMap);
+        const popupContent = `
+            <div style="min-width: 200px;">
+                <h6 style="margin: 0 0 8px 0; font-weight: bold;">${colorEmojis[center.color]} ${center.name}</h6>
+                <div style="font-size: 12px; color: #666;">
+                    <p style="margin: 4px 0;"><strong>Capacity:</strong> ${center.capacity}</p>
+                    <p style="margin: 4px 0;"><strong>Occupancy:</strong> ${center.occupancy}</p>
+                    <p style="margin: 4px 0;"><strong>Status:</strong> <span style="color: ${center.color === 'green' ? 'green' : center.color === 'orange' ? 'orange' : center.color === 'red' ? 'red' : 'blue'}; font-weight: bold;">${center.status}</span></p>
+                </div>
             </div>
-            <span class="badge bg-${urgencyColor}-subtle text-${urgencyColor} fw-semibold">${p.urgency || 'Medium'}</span>
-        </div>`;
-    }).join('');
-}
+        `;
+        marker.bindPopup(popupContent);
+    });
 
-document.getElementById('loadPriority').addEventListener('click', loadPriorityList);
-loadPriorityList();
+    // Add a circle to show affected disaster area
+    L.circle([17.3850, 78.4867], {
+        color: '#ff6b6b',
+        fillColor: '#ff6b6b',
+        fillOpacity: 0.1,
+        radius: 5000,
+        weight: 2,
+        dashArray: '5, 5'
+    }).addTo(reliefMap).bindPopup('Affected Disaster Zone');
 
-// Submit Report
-document.getElementById('reportForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('reportBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> SUBMITTING...';
-    btn.disabled = true;
-
-    await new Promise(r => setTimeout(r, 1200)); // Simulate submission delay
-
-    document.getElementById('reportSuccess').classList.remove('d-none');
-    document.getElementById('reportForm').reset();
-    document.getElementById('coordDisplay').textContent = 'No location selected.';
-    if (reportMarker) { reportMarker.remove(); reportMarker = null; }
-
-    btn.innerHTML = '<i class="bi bi-send me-2"></i> SUBMIT EMERGENCY REPORT';
-    btn.disabled = false;
-
-    setTimeout(() => document.getElementById('reportSuccess').classList.add('d-none'), 5000);
+    console.log('Relief map initialized successfully');
 });
 </script>
 {% endblock %}

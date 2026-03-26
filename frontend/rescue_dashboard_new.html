@@ -1,0 +1,534 @@
+{% extends 'base_new.html' %}
+
+{% block title %}Rescue Dashboard - AI Disaster Response{% endblock %}
+{% block page_title %}
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span>🚑 Rescue Dashboard</span>
+        <span class="badge badge-warning">
+            <i class="bi bi-exclamation-circle"></i> Field Operations
+        </span>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .mission-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .mission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .mission-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+    }
+
+    .mission-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .mission-status.active {
+        background: rgba(34, 197, 94, 0.2);
+        color: var(--success);
+    }
+
+    .mission-status.pending {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+    }
+
+    .mission-status.critical {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--danger);
+    }
+
+    .mission-details {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        padding: 16px 0;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .mission-detail {
+        font-size: 13px;
+    }
+
+    .mission-detail-label {
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .mission-detail-value {
+        color: var(--text-light);
+        font-weight: 600;
+    }
+
+    .mission-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+    }
+
+    .btn-small {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .btn-accept {
+        background: rgba(34, 197, 94, 0.2);
+        color: var(--success);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-accept:hover {
+        background: rgba(34, 197, 94, 0.3);
+        border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .btn-navigate {
+        background: rgba(59, 130, 246, 0.2);
+        color: var(--primary);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-navigate:hover {
+        background: rgba(59, 130, 246, 0.3);
+        border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-update {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-update:hover {
+        background: rgba(245, 158, 11, 0.3);
+        border-color: rgba(245, 158, 11, 0.5);
+    }
+
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+
+        .mission-details {
+            grid-template-columns: 1fr;
+        }
+
+        .mission-actions {
+            flex-direction: column;
+        }
+
+        .btn-small {
+            width: 100%;
+        }
+    }
+
+    .team-member {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .team-avatar {
+        width: 40px;
+        height: 40px;
+        background: var(--primary);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .team-info h6 {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-light);
+    }
+
+    .team-info p {
+        margin: 0;
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .chart-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .map-container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        height: 350px;
+        box-shadow: var(--shadow-md);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+    
+    <!-- MISSION STATISTICS -->
+    <h3 class="section-title">
+        <i class="bi bi-activity"></i> Current Operations Status
+    </h3>
+
+    <div class="stats-container">
+        <div class="card stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <p class="stat-label">Active Missions</p>
+                    <div class="stat-value" style="color: var(--warning);">8</div>
+                    <p style="font-size: 12px; color: var(--success); margin-top: 8px;">
+                        <i class="bi bi-arrow-up"></i> All assigned
+                    </p>
+                </div>
+                <div class="stat-icon warning">
+                    <i class="bi bi-truck"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <p class="stat-label">Pending Tasks</p>
+                    <div class="stat-value" style="color: var(--primary);">23</div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                        <i class="bi bi-clock"></i> In queue
+                    </p>
+                </div>
+                <div class="stat-icon primary">
+                    <i class="bi bi-list-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <p class="stat-label">Team Members</p>
+                    <div class="stat-value" style="color: var(--success);">12</div>
+                    <p style="font-size: 12px; color: var(--success); margin-top: 8px;">
+                        <i class="bi bi-circle-fill"></i> All available
+                    </p>
+                </div>
+                <div class="stat-icon success">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIVE MISSIONS -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 30px;">
+        <div>
+            <h4 class="section-title">
+                <i class="bi bi-lightning-charge"></i> Active Missions
+            </h4>
+
+            <!-- Mission 1 -->
+            <div class="mission-card">
+                <div class="mission-header">
+                    <div>
+                        <div class="mission-title">Flood Rescue - Zone A (Riverside)</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0;">
+                            <i class="bi bi-geo-alt"></i> 37.7749° N, 122.4194° W
+                        </p>
+                    </div>
+                    <span class="mission-status critical">
+                        <i class="bi bi-exclamation-circle"></i> CRITICAL
+                    </span>
+                </div>
+
+                <div class="mission-details">
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Team</div>
+                        <div class="mission-detail-value">Alpha Unit / 6 members</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Duration</div>
+                        <div class="mission-detail-value">2 hrs 45 min</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Progress</div>
+                        <div class="mission-detail-value">5 of 12 rescued</div>
+                    </div>
+                </div>
+
+                <div class="mission-actions">
+                    <button class="btn-small btn-navigate">
+                        <i class="bi bi-geo-alt"></i> Navigate
+                    </button>
+                    <button class="btn-small btn-update">
+                        <i class="bi bi-arrow-repeat"></i> Update Status
+                    </button>
+                    <button class="btn-small btn-navigate">
+                        <i class="bi bi-chat-dots"></i> Chat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mission 2 -->
+            <div class="mission-card">
+                <div class="mission-header">
+                    <div>
+                        <div class="mission-title">Earthquake Response - Zone B</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0;">
+                            <i class="bi bi-geo-alt"></i> 37.8044° N, 122.4697° W
+                        </p>
+                    </div>
+                    <span class="mission-status active">
+                        <i class="bi bi-check-circle"></i> IN PROGRESS
+                    </span>
+                </div>
+
+                <div class="mission-details">
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Team</div>
+                        <div class="mission-detail-value">Bravo Unit / 5 members</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Duration</div>
+                        <div class="mission-detail-value">1 hr 20 min</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Progress</div>
+                        <div class="mission-detail-value">8 of 10 rescued</div>
+                    </div>
+                </div>
+
+                <div class="mission-actions">
+                    <button class="btn-small btn-navigate">
+                        <i class="bi bi-geo-alt"></i> Navigate
+                    </button>
+                    <button class="btn-small btn-update">
+                        <i class="bi bi-arrow-repeat"></i> Update Status
+                    </button>
+                    <button class="btn-small btn-navigate">
+                        <i class="bi bi-chat-dots"></i> Chat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mission 3 -->
+            <div class="mission-card">
+                <div class="mission-header">
+                    <div>
+                        <div class="mission-title">Landslide Assessment - Zone C</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0;">
+                            <i class="bi bi-geo-alt"></i> 37.7893° N, 122.3991° W
+                        </p>
+                    </div>
+                    <span class="mission-status pending">
+                        <i class="bi bi-hourglass-split"></i> PENDING
+                    </span>
+                </div>
+
+                <div class="mission-details">
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Team</div>
+                        <div class="mission-detail-value">Charlie Unit / 4 members</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Estimated Start</div>
+                        <div class="mission-detail-value">15 minutes</div>
+                    </div>
+                    <div class="mission-detail">
+                        <div class="mission-detail-label">Resources</div>
+                        <div class="mission-detail-value">3 vehicles ready</div>
+                    </div>
+                </div>
+
+                <div class="mission-actions">
+                    <button class="btn-small btn-accept">
+                        <i class="bi bi-check"></i> Accept Mission
+                    </button>
+                    <button class="btn-small btn-navigate">
+                        <i class="bi bi-geo-alt"></i> View Location
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAP & TEAM -->
+        <div>
+            <h4 class="section-title">
+                <i class="bi bi-geo-alt"></i> Route Map
+            </h4>
+            <div class="map-container" id="rescueMap"></div>
+
+            <h4 class="section-title" style="margin-top: 30px;">
+                <i class="bi bi-people"></i> Your Team
+            </h4>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: var(--shadow-md);">
+                <div class="team-member">
+                    <div class="team-avatar">JD</div>
+                    <div class="team-info">
+                        <h6>John Doe</h6>
+                        <p>Team Lead</p>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="team-avatar" style="background: var(--warning);">SM</div>
+                    <div class="team-info">
+                        <h6>Sarah Miller</h6>
+                        <p>Medic</p>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="team-avatar" style="background: var(--success);">MJ</div>
+                    <div class="team-info">
+                        <h6>Mike Johnson</h6>
+                        <p>Rescue Specialist</p>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="team-avatar" style="background: var(--info);">AP</div>
+                    <div class="team-info">
+                        <h6>Alice Park</h6>
+                        <p>Driver</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RISK ASSESSMENT CHART -->
+    <div class="chart-container" style="position: relative; height: 350px;">
+        <h4 class="section-title" style="margin-bottom: 20px;">
+            <i class="bi bi-exclamation-triangle"></i> Risk Assessment Over Time
+        </h4>
+        <div style="position: relative; height: 300px;">
+            <canvas id="riskChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Risk Assessment Chart
+    const riskCtx = document.getElementById('riskChart');
+    if (riskCtx) {
+        new Chart(riskCtx, {
+            type: 'line',
+            data: {
+                labels: ['12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'],
+                datasets: [{
+                    label: 'Risk Level',
+                    data: [65, 72, 58, 45, 52, 48, 42],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: 'white',
+                    pointRadius: 6,
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#f1f5f9'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255, 255, 255, 0.08)', drawBorder: false },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    }
+
+    // Telangana Map initialization for Rescue Dashboard
+    const rescueMap = initializeTelanganaMap('rescueMap', 'rescue');
+    
+    // Rescue-specific features and stats
+    const stats = getTelanganaDisasterStats();
+    console.log('Rescue Team View - Active Teams:', stats.activeRescueTeams);
+    console.log('Total Personnel Available:', stats.totalRescuePersonnel);
+});
+
+</script>
+{% endblock %}

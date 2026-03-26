@@ -1,5 +1,6 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 import datetime
+from auth import get_current_user, login_required
 
 tasks_bp = Blueprint('tasks_bp', __name__)
 
@@ -13,6 +14,15 @@ _tasks = [
 ]
 
 _field_updates = []
+
+@tasks_bp.route('/tasks')
+@login_required
+def tasks_page():
+    """Tasks management page - Admin and Rescue roles only"""
+    user = get_current_user()
+    if user['role'] not in ['admin', 'rescue']:
+        return render_template('unauthorized.html'), 403
+    return render_template('tasks.html', user=user, tasks=_tasks)
 
 @tasks_bp.route('/api/tasks', methods=['GET'])
 def get_tasks():

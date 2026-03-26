@@ -1,0 +1,349 @@
+{% extends 'base_new.html' %}
+
+{% block title %}Tasks - AI Disaster Response{% endblock %}
+{% block page_title %}
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span>✓ Task Management</span>
+        <span class="badge badge-primary">
+            <i class="bi bi-list-check"></i> {{ tasks|length }} Active
+        </span>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .task-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+    }
+
+    .task-card:hover {
+        border-color: rgba(59, 130, 246, 0.3);
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .task-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .task-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .task-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+        margin: 0 0 8px;
+    }
+
+    .task-details {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .task-meta {
+        display: flex;
+        gap: 16px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+
+    .meta-label {
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .meta-value {
+        color: var(--text-light);
+    }
+
+    .badge-priority {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-critical {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+    }
+
+    .badge-medium {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        border: 1px solid var(--warning);
+    }
+
+    .badge-low {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+
+    .badge-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-pending {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        border: 1px solid #cbd5e1;
+    }
+
+    .badge-in-progress {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--primary);
+        border: 1px solid var(--primary);
+    }
+
+    .badge-completed {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .task-list {
+        display: grid;
+        gap: 16px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    @media (max-width: 768px) {
+        .task-header {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-meta {
+            flex-direction: column;
+            gap: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+    
+    <!-- Filter Section -->
+    <div style="margin-bottom: 30px;">
+        <h4 class="section-title" style="margin-bottom: 16px;">
+            <i class="bi bi-funnel"></i> Filter Tasks
+        </h4>
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All Tasks</button>
+            <button class="filter-btn" data-filter="Pending">Pending</button>
+            <button class="filter-btn" data-filter="In Progress">In Progress</button>
+            <button class="filter-btn" data-filter="Completed">Completed</button>
+        </div>
+        <div class="filter-group">
+            <button class="filter-btn" data-filter-priority="critical">🔴 Critical</button>
+            <button class="filter-btn" data-filter-priority="medium">🟠 Medium</button>
+            <button class="filter-btn" data-filter-priority="low">🟢 Low</button>
+        </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div style="margin-bottom: 30px;">
+        <h4 class="section-title" style="margin-bottom: 20px;">
+            <i class="bi bi-list-task"></i> Active Tasks
+        </h4>
+        <div class="task-list" id="taskList">
+            {% if tasks %}
+                {% for task in tasks %}
+                <div class="task-card" data-status="{{ task.status }}" data-priority="{{ task.priority }}">
+                    <div class="task-header">
+                        <div style="display: flex; align-items: flex-start; flex: 1;">
+                            <div class="task-icon" style="{% if task.priority == 'critical' %}background: rgba(239, 68, 68, 0.15); color: var(--danger);{% elif task.priority == 'medium' %}background: rgba(245, 158, 11, 0.15); color: var(--warning);{% else %}background: rgba(34, 197, 94, 0.15); color: var(--success);{% endif %}">
+                                <i class="bi {{ task.icon }}"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <h5 class="task-title">{{ task.title }}</h5>
+                                <p class="task-details">{{ task.details }}</p>
+                            </div>
+                        </div>
+                        <div style="margin-left: 16px; text-align: right;">
+                            <span class="badge-priority {% if task.priority == 'critical' %}badge-critical{% elif task.priority == 'medium' %}badge-medium{% else %}badge-low{% endif %}">
+                                {{ task.priority }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="task-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span class="badge-status {% if task.status == 'Pending' %}badge-pending{% elif task.status == 'In Progress' %}badge-in-progress{% else %}badge-completed{% endif %}">
+                                {{ task.status }}
+                            </span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="bi bi-geo-alt" style="color: var(--primary);"></i>
+                            <span class="meta-value">{{ task.zone }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="bi bi-clock" style="color: var(--text-muted);"></i>
+                            <span class="meta-value">{{ task.assigned_at }}</span>
+                        </div>
+                        {% if task.status != 'Completed' %}
+                        <button onclick="updateTaskStatus({{ task.id }}, '{{ 'Completed' if task.status != 'Completed' else 'Pending' }}')" style="margin-left: auto; padding: 6px 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                            {% if task.status == 'In Progress' %}Complete{% else %}Start{% endif %}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h4 style="color: var(--text-light); margin-bottom: 8px;">No Tasks Available</h4>
+                <p>All tasks have been completed or there are no pending assignments.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Task Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-md);">
+            <div style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; font-weight: 600;">Total Tasks</div>
+            <div style="font-size: 32px; font-weight: 700; color: var(--text-light);">{{ tasks|length }}</div>
+        </div>
+        
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-md);">
+            <div style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; font-weight: 600;">In Progress</div>
+            <div style="font-size: 32px; font-weight: 700; color: var(--primary);">{{ tasks|selectattr('status', 'equalto', 'In Progress')|list|length }}</div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: var(--shadow-md);">
+            <div style="font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; font-weight: 600;">Critical</div>
+            <div style="font-size: 32px; font-weight: 700; color: var(--danger);">{{ tasks|selectattr('priority', 'equalto', 'critical')|list|length }}</div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const taskCards = document.querySelectorAll('.task-card');
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filterType = this.getAttribute('data-filter');
+            const filterPriority = this.getAttribute('data-filter-priority');
+
+            taskCards.forEach(card => {
+                let show = true;
+
+                if (filterType && filterType !== 'all') {
+                    show = card.getAttribute('data-status') === filterType;
+                }
+
+                if (filterPriority) {
+                    show = card.getAttribute('data-priority') === filterPriority;
+                }
+
+                card.style.display = show ? '' : 'none';
+            });
+
+            // Update active button
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+
+function updateTaskStatus(taskId, newStatus) {
+    fetch('/api/tasks/' + taskId + '/update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status: newStatus})
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    }).catch(e => console.error('Error:', e));
+}
+</script>
+{% endblock %}

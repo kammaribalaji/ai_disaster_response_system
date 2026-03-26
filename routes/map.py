@@ -1,9 +1,20 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, render_template, redirect, url_for, abort
 import sqlite3
 import os
+from auth import get_current_user, login_required
 
 map_bp = Blueprint('map_bp', __name__)
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ai_disaster_response.db')
+
+@map_bp.route('/map')
+@login_required
+def map_page():
+    """Telangana Disaster Map - Real-time disaster visualization (Admin & Rescue only)"""
+    user = get_current_user()
+    # Restrict to admin and rescue roles only
+    if user['role'] not in ['admin', 'rescue']:
+        abort(403)
+    return render_template('map.html', user=user)
 
 @map_bp.route('/api/risk-map', methods=['GET'])
 def get_risk_map():

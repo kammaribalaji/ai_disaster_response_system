@@ -1,0 +1,490 @@
+{% extends 'base_new.html' %}
+
+{% block title %}Settings - AI Disaster Response{% endblock %}
+{% block page_title %}
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="bi bi-gear" style="font-size: 20px;"></i>
+        <span>System Settings</span>
+        <span class="badge badge-primary">
+            <i class="bi bi-shield-lock"></i> Admin Only
+        </span>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .settings-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .settings-group {
+        margin-bottom: 20px;
+    }
+
+    .settings-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .settings-input {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-light);
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
+
+    .settings-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .settings-select {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-light);
+        font-size: 14px;
+    }
+
+    .settings-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 28px;
+        background: var(--border-color);
+        border-radius: 14px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    .toggle-switch.active {
+        background: var(--success);
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: left 0.3s ease;
+    }
+
+    .toggle-switch.active::after {
+        left: 24px;
+    }
+
+    .btn-save {
+        background: var(--primary);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-save:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-reset {
+        background: var(--border-color);
+        color: var(--text-light);
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-left: 12px;
+    }
+
+    .btn-reset:hover {
+        background: var(--border-color);
+        opacity: 0.8;
+    }
+
+    .alert-success {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: var(--text-light);
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        display: none;
+    }
+
+    .alert-success.show {
+        display: block;
+    }
+
+    .settings-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .setting-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .setting-info {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    
+    <!-- Success Alert -->
+    <div class="alert-success" id="successAlert">
+        <i class="bi bi-check-circle"></i> Settings saved successfully!
+    </div>
+
+    <!-- System Configuration -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-gear"></i> System Configuration
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">System Name</label>
+                <input type="text" class="settings-input" value="AI Disaster Response System" id="systemName">
+                <div class="setting-info">Name of your disaster management system</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Organization</label>
+                <input type="text" class="settings-input" value="Emergency Management Authority" id="organization">
+                <div class="setting-info">Your organization name</div>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">Timezone</label>
+                <select class="settings-select" id="timezone">
+                    <option value="UTC">UTC</option>
+                    <option value="IST" selected>IST (Indian Standard Time)</option>
+                    <option value="EST">EST (Eastern Standard Time)</option>
+                    <option value="PST">PST (Pacific Standard Time)</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Default Language</label>
+                <select class="settings-select" id="language">
+                    <option value="en" selected>English</option>
+                    <option value="hi">Hindi</option>
+                    <option value="te">Telugu</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert & Notification Settings -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-bell"></i> Notifications & Alerts
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">Email Alerts</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Send email notifications for critical events</div>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">SMS Alerts</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Send SMS notifications for emergency situations</div>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">Push Notifications</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Browser push notifications for real-time updates</div>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <label class="settings-label">Alert Threshold (Risk Level)</label>
+            <select class="settings-select" id="alertThreshold">
+                <option value="low">Low - All events</option>
+                <option value="medium" selected>Medium - Important events</option>
+                <option value="high">High - Critical events only</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Data & Privacy Settings -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-shield-lock"></i> Data & Privacy
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">Data Retention (Days)</label>
+                <input type="number" class="settings-input" value="90" min="1" max="365">
+                <div class="setting-info">How long to keep historical data</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Log Retention (Days)</label>
+                <input type="number" class="settings-input" value="30" min="1" max="180">
+                <div class="setting-info">How long to keep system logs</div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">Enable Audit Logging</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Log all user actions for security & compliance</div>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">Two-Factor Authentication</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Require 2FA for admin accounts</div>
+                </div>
+                <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map & Location Settings -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-geo-alt"></i> Map & Location
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">Default Latitude</label>
+                <input type="number" class="settings-input" value="17.3850" step="0.0001">
+                <div class="setting-info">Default map center latitude (Telangana)</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Default Longitude</label>
+                <input type="number" class="settings-input" value="78.4867" step="0.0001">
+                <div class="setting-info">Default map center longitude (Telangana)</div>
+            </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">Default Zoom Level</label>
+                <input type="number" class="settings-input" value="11" min="1" max="20">
+                <div class="setting-info">Default map zoom level (1-20)</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Map Provider</label>
+                <select class="settings-select" id="mapProvider">
+                    <option value="osm" selected>OpenStreetMap</option>
+                    <option value="satellite">Satellite</option>
+                    <option value="terrain">Terrain</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ML Model Settings -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-robot"></i> Machine Learning Model
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-group">
+                <label class="settings-label">Model Version</label>
+                <select class="settings-select" id="modelVersion">
+                    <option value="v1">v1.0 (Current)</option>
+                    <option value="v2">v2.0 (Beta)</option>
+                    <option value="v3">v3.0 (Experimental)</option>
+                </select>
+                <div class="setting-info">AI model version for predictions</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Confidence Threshold (%)</label>
+                <input type="number" class="settings-input" value="75" min="0" max="100">
+                <div class="setting-info">Minimum confidence for risk predictions</div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle">
+                <div>
+                    <div style="color: var(--text-light); font-weight: 600;">Auto Retrain Model</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Automatically retrain on new data</div>
+                </div>
+                <div class="toggle-switch active" onclick="toggleSwitch(this)"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status & Maintenance -->
+    <div class="settings-section">
+        <div class="settings-title">
+            <i class="bi bi-info-circle"></i> System Information
+        </div>
+
+        <div class="settings-row">
+            <div class="setting-card">
+                <div style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">System Version</div>
+                <div style="color: var(--text-light); font-size: 18px; font-weight: 700; margin-top: 8px;">1.2.3</div>
+            </div>
+
+            <div class="setting-card">
+                <div style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">Last Backup</div>
+                <div style="color: var(--text-light); font-size: 18px; font-weight: 700; margin-top: 8px;">Today 02:30 AM</div>
+            </div>
+
+            <div class="setting-card">
+                <div style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">Active Users</div>
+                <div style="color: var(--text-light); font-size: 18px; font-weight: 700; margin-top: 8px;">12 Online</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <div class="settings-group">
+                <div class="settings-toggle">
+                    <div>
+                        <div style="color: var(--text-light); font-weight: 600;">Maintenance Mode</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Prevent new logins for system maintenance</div>
+                    </div>
+                    <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 12px; margin-top: 30px; padding-bottom: 30px;">
+        <button class="btn-save" onclick="saveSettings()">
+            <i class="bi bi-check-circle"></i> Save Changes
+        </button>
+        <button class="btn-reset" onclick="resetSettings()">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset to Defaults
+        </button>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleSwitch(element) {
+    element.classList.toggle('active');
+}
+
+function saveSettings() {
+    const successAlert = document.getElementById('successAlert');
+    
+    // Collect all settings
+    const settings = {
+        systemName: document.getElementById('systemName')?.value,
+        organization: document.getElementById('organization')?.value,
+        timezone: document.getElementById('timezone')?.value,
+        language: document.getElementById('language')?.value,
+        alertThreshold: document.getElementById('alertThreshold')?.value,
+        modelVersion: document.getElementById('modelVersion')?.value,
+        mapProvider: document.getElementById('mapProvider')?.value,
+    };
+
+    console.log('Saving settings:', settings);
+
+    // Show success message
+    successAlert.classList.add('show');
+    setTimeout(() => {
+        successAlert.classList.remove('show');
+    }, 3000);
+}
+
+function resetSettings() {
+    if (confirm('Are you sure you want to reset all settings to defaults?')) {
+        // Reset form values
+        document.getElementById('systemName').value = 'AI Disaster Response System';
+        document.getElementById('organization').value = 'Emergency Management Authority';
+        document.getElementById('timezone').value = 'IST';
+        document.getElementById('language').value = 'en';
+        document.getElementById('alertThreshold').value = 'medium';
+        document.getElementById('modelVersion').value = 'v1';
+        document.getElementById('mapProvider').value = 'osm';
+        
+        console.log('Settings reset to defaults');
+    }
+}
+</script>
+{% endblock %}

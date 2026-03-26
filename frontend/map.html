@@ -1,0 +1,330 @@
+{% extends 'base_new.html' %}
+
+{% block title %}Disaster Map - AI Disaster Response{% endblock %}
+{% block page_title %}
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span>📍 Telangana Disaster Map</span>
+        <span class="badge badge-info">
+            <i class="bi bi-geo-alt"></i> Real-Time
+        </span>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Leaflet Map Styles */
+    #disasterMap {
+        width: 100%;
+        height: 600px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .map-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .control-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .control-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .control-icon.disasters {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+    }
+
+    .control-icon.rescue {
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--primary);
+    }
+
+    .control-icon.relief {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+    }
+
+    .control-info h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-light);
+        margin: 0 0 4px;
+    }
+
+    .control-info p {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .map-legend {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 24px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .legend-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-light);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .legend-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .legend-marker {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .legend-marker.critical {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--danger);
+        border: 2px solid var(--danger);
+    }
+
+    .legend-marker.high {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+        border: 2px solid var(--warning);
+    }
+
+    .legend-marker.medium {
+        background: rgba(251, 146, 60, 0.2);
+        color: #fb923c;
+        border: 2px solid #fb923c;
+    }
+
+    .legend-marker.low {
+        background: rgba(34, 197, 94, 0.2);
+        color: var(--success);
+        border: 2px solid var(--success);
+    }
+
+    .legend-text h5 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-light);
+        margin: 0 0 2px;
+    }
+
+    .legend-text p {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    .leaflet-popup-content {
+        font-family: 'Poppins', sans-serif !important;
+        background: var(--bg-card) !important;
+        color: var(--text-light) !important;
+        border-radius: 8px !important;
+    }
+
+    .leaflet-popup-content h5 {
+        color: var(--text-light) !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        margin: 0 0 8px !important;
+    }
+
+    .leaflet-popup-content p {
+        color: var(--text-muted) !important;
+        font-size: 12px !important;
+        margin: 4px 0 !important;
+    }
+
+    @media (max-width: 768px) {
+        #disasterMap {
+            height: 400px;
+        }
+
+        .map-controls {
+            grid-template-columns: 1fr;
+        }
+
+        .legend-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+    
+    <!-- MAP CONTROLS & STATISTICS -->
+    <div class="map-controls">
+        <div class="control-item">
+            <div class="control-icon disasters">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="control-info">
+                <h4>Active Disasters</h4>
+                <p id="disasterCount">Loading...</p>
+            </div>
+        </div>
+
+        <div class="control-item">
+            <div class="control-icon rescue">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="control-info">
+                <h4>Rescue Teams Active</h4>
+                <p id="rescueCount">Loading...</p>
+            </div>
+        </div>
+
+        <div class="control-item">
+            <div class="control-icon relief">
+                <i class="bi bi-box2-heart"></i>
+            </div>
+            <div class="control-info">
+                <h4>Relief Centers Open</h4>
+                <p id="reliefCount">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE MAP -->
+    <div id="disasterMap"></div>
+
+    <!-- LEGEND -->
+    <div class="map-legend">
+        <div class="legend-title">
+            <i class="bi bi-info-circle"></i> Map Legend
+        </div>
+        
+        <div class="legend-grid">
+            <div class="legend-item">
+                <div class="legend-marker critical">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>Critical Disaster</h5>
+                    <p>Immediate response required</p>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-marker high">
+                    <i class="bi bi-exclamation-circle"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>High Risk Zone</h5>
+                    <p>Enhanced monitoring active</p>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-marker medium">
+                    <i class="bi bi-exclamation-octagon"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>Medium Risk Zone</h5>
+                    <p>Preventive measures in place</p>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-marker low">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>Low Risk Zone</h5>
+                    <p>Normal operations</p>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-marker" style="background: rgba(59, 130, 246, 0.2); color: var(--primary); border: 2px solid var(--primary);">
+                    <i class="bi bi-person-check"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>Rescue Team</h5>
+                    <p>Active rescue operations</p>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-marker" style="background: rgba(34, 197, 94, 0.2); color: var(--success); border: 2px solid var(--success);">
+                    <i class="bi bi-hospital"></i>
+                </div>
+                <div class="legend-text">
+                    <h5>Relief Center</h5>
+                    <p>Shelter and supplies</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Telangana Disaster Map
+    const map = initializeTelanganaMap('disasterMap', '{{ user.get("role") }}');
+    
+    // Get disaster statistics
+    const stats = getTelanganaDisasterStats();
+    
+    // Update control counters
+    document.getElementById('disasterCount').textContent = stats.activeDiasters + ' zones affected';
+    document.getElementById('rescueCount').textContent = stats.activeRescueTeams + ' teams deployed';
+    document.getElementById('reliefCount').textContent = stats.reliefCentersTotal + ' centers active';
+    
+    // Log map initialization
+    console.log('📍 Telangana Disaster Map Initialized');
+    console.log('Active Disasters:', stats.activeDiasters);
+    console.log('Rescue Teams:', stats.activeRescueTeams);
+    console.log('Relief Centers:', stats.reliefCentersTotal);
+    console.log('Total Personnel:', stats.totalRescuePersonnel);
+});
+</script>
+{% endblock %}
